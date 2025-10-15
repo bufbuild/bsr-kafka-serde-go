@@ -60,52 +60,73 @@ func TestSerde(t *testing.T) {
 	value, err := proto.Marshal(commit)
 	require.NoError(t, err)
 
-	dynamicMessage, err := serde.Deserialize(ctx, value, "abc", "buf.registry.module.v1.Commit", time.Now)
-	require.NoError(t, err)
+	t.Run("valid", func(t *testing.T) {
+		t.Parallel()
+		dynamicMessage, err := serde.Deserialize(ctx, value, "abc", "buf.registry.module.v1.Commit", time.Now)
+		require.NoError(t, err)
+		assert.Empty(t, cmp.Diff(commit, dynamicMessage, protocmp.Transform()))
+	})
+	t.Run("negative cache", func(t *testing.T) {
+		t.Parallel()
+		_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", time.Now)
+		require.Error(t, err)
+		require.Equal(t, int32(1), handler.misses.Load())
 
-	assert.Empty(t, cmp.Diff(commit, dynamicMessage, protocmp.Transform()))
+		// Try again; should be cached and not hit handler.
+		_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", time.Now)
+		require.Error(t, err)
+		require.Equal(t, int32(1), handler.misses.Load())
 
-	_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", time.Now)
-	require.Error(t, err)
-	require.Equal(t, int32(1), handler.misses.Load())
-
-	// Try again; should be cached and not hit handler.
-	_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", time.Now)
-	require.Error(t, err)
-	require.Equal(t, int32(1), handler.misses.Load())
-
-	// Negative cache should expire after 1 minute.
-	_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", func() time.Time { return time.Now().Add(2 * time.Minute) })
-	require.Error(t, err)
-	require.Equal(t, int32(2), handler.misses.Load())
+		// Negative cache should expire after 1 minute.
+		_, err = serde.Deserialize(ctx, value, "miss", "buf.registry.module.v1.Commit", func() time.Time { return time.Now().Add(2 * time.Minute) })
+		require.Error(t, err)
+		require.Equal(t, int32(2), handler.misses.Load())
+	})
+	t.Run("retries", func(t *testing.T) {
+		t.Parallel()
+		deserializedMessage, err := serde.Deserialize(ctx, value, "xyz", "buf.registry.module.v1.Commit", time.Now)
+		require.NoError(t, err)
+		// Should have hit the handler three times; first two were retried transparently.
+		require.Equal(t, int32(3), handler.retries.Load())
+		assert.Empty(t, cmp.Diff(commit, deserializedMessage, protocmp.Transform()))
+	})
 }
 
 type fdsHandler struct {
 	commitID string
 
-	hits   atomic.Int32
-	misses atomic.Int32
+	hits    atomic.Int32
+	retries atomic.Int32
+	misses  atomic.Int32
 }
 
 func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, req *modulev1.GetFileDescriptorSetRequest) (*modulev1.GetFileDescriptorSetResponse, error) {
+	validResponse := &modulev1.GetFileDescriptorSetResponse{
+		FileDescriptorSet: &descriptorpb.FileDescriptorSet{
+			File: []*descriptorpb.FileDescriptorProto{
+				protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_commit_proto),
+				protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_digest_proto),
+				protodesc.ToFileDescriptorProto(extensionv1beta1.File_buf_registry_priv_extension_v1beta1_extension_proto),
+				protodesc.ToFileDescriptorProto(validate.File_buf_validate_validate_proto),
+				protodesc.ToFileDescriptorProto(descriptorpb.File_google_protobuf_descriptor_proto),
+				protodesc.ToFileDescriptorProto(durationpb.File_google_protobuf_duration_proto),
+				protodesc.ToFileDescriptorProto(timestamppb.File_google_protobuf_timestamp_proto),
+			},
+		},
+		Commit: &modulev1.Commit{
+			Id: h.commitID,
+		},
+	}
 	if req.ResourceRef.GetId() == "abc" {
 		h.hits.Add(1)
-		return &modulev1.GetFileDescriptorSetResponse{
-			FileDescriptorSet: &descriptorpb.FileDescriptorSet{
-				File: []*descriptorpb.FileDescriptorProto{
-					protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_commit_proto),
-					protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_digest_proto),
-					protodesc.ToFileDescriptorProto(extensionv1beta1.File_buf_registry_priv_extension_v1beta1_extension_proto),
-					protodesc.ToFileDescriptorProto(validate.File_buf_validate_validate_proto),
-					protodesc.ToFileDescriptorProto(descriptorpb.File_google_protobuf_descriptor_proto),
-					protodesc.ToFileDescriptorProto(durationpb.File_google_protobuf_duration_proto),
-					protodesc.ToFileDescriptorProto(timestamppb.File_google_protobuf_timestamp_proto),
-				},
-			},
-			Commit: &modulev1.Commit{
-				Id: h.commitID,
-			},
-		}, nil
+		return validResponse, nil
+	} else if req.ResourceRef.GetId() == "xyz" {
+		// Should retry this error twice, then get a reasonable response.
+		h.retries.Add(1)
+		if h.retries.Load() > 2 {
+			return validResponse, nil
+		}
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("unavailable"))
 	}
 	h.misses.Add(1)
 	return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))

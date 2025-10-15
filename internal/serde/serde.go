@@ -27,6 +27,7 @@ import (
 	modulev1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
 	"connectrpc.com/connect"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
+	"github.com/sethvargo/go-retry"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
@@ -115,14 +116,32 @@ func (s *Serde) Deserialize(ctx context.Context, value []byte, commit, messageFQ
 	}
 	if messageDescriptor == nil { //nolint: nestif // No need to restructure this.
 		response, err, _ := s.sfGroup.Do(key.String(), func() (any, error) {
-			return s.fileDescriptorSetClient.GetFileDescriptorSet(ctx, &modulev1.GetFileDescriptorSetRequest{
-				ResourceRef: &modulev1.ResourceRef{
-					Value: &modulev1.ResourceRef_Id{
-						Id: commit,
-					},
+			return retry.DoValue(
+				ctx,
+				retry.WithMaxDuration(
+					30*time.Second,
+					retry.NewExponential(time.Second),
+				),
+				func(ctx context.Context) (*modulev1.GetFileDescriptorSetResponse, error) {
+					response, err := s.fileDescriptorSetClient.GetFileDescriptorSet(ctx, &modulev1.GetFileDescriptorSetRequest{
+						ResourceRef: &modulev1.ResourceRef{
+							Value: &modulev1.ResourceRef_Id{
+								Id: commit,
+							},
+						},
+						IncludeTypes: []string{messageFQN},
+					})
+					if err != nil {
+						switch code := connect.CodeOf(err); code { //nolint: exhaustive // We're covering the positive cases here; everything else is negative.
+						case connect.CodeUnavailable, connect.CodeResourceExhausted, connect.CodeInternal:
+							return nil, retry.RetryableError(err)
+						default:
+							return nil, err
+						}
+					}
+					return response, nil
 				},
-				IncludeTypes: []string{messageFQN},
-			})
+			)
 		})
 		if err != nil {
 			s.mu.Lock()
