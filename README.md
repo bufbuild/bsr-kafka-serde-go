@@ -2,6 +2,7 @@
 
 # bsr-kafka-serde-go
 
+[![License](https://img.shields.io/github/license/bufbuild/bsr-kafka-serde-go?color=blue)](https://github.com/bufbuild/bsr-kafka-serde-go/blob/main/LICENSE)
 [![CI](https://github.com/bufbuild/bsr-kafka-serde-go/actions/workflows/ci.yaml/badge.svg)](https://github.com/bufbuild/bsr-kafka-serde-go/actions/workflows/ci.yaml)
 [![GoDoc](https://pkg.go.dev/badge/github.com/bufbuild/bsr-kafka-serde-go.svg)](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go)
 [![Slack](https://img.shields.io/badge/slack-buf-%23e01563)](https://buf.build/links/slack)
