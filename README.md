@@ -2,7 +2,10 @@
 
 # bsr-kafka-serde-go
 
+[![License](https://img.shields.io/github/license/bufbuild/bsr-kafka-serde-go?color=blue)](https://github.com/bufbuild/bsr-kafka-serde-go/blob/main/LICENSE)
 [![CI](https://github.com/bufbuild/bsr-kafka-serde-go/actions/workflows/ci.yaml/badge.svg)](https://github.com/bufbuild/bsr-kafka-serde-go/actions/workflows/ci.yaml)
+[![GoDoc](https://pkg.go.dev/badge/github.com/bufbuild/bsr-kafka-serde-go.svg)](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go)
+[![Slack](https://img.shields.io/badge/slack-buf-%23e01563)](https://buf.build/links/slack)
 
 [bsr-kafka-serde-go][bsr-kafka-serde-go] provides a Kafka serializer and deserializer in Go for working with schemas defined in the [Buf Schema Registry][bsr].
 It pairs with [Bufstream's semantic validation][bufstream-semantic-validation] feature, using Kafka record headers to automatically convert record values to and from Protobuf.
@@ -10,7 +13,7 @@ It pairs with [Bufstream's semantic validation][bufstream-semantic-validation] f
 ## Usage
 
 `bsr-kafka-serde-go` currently supports [`confluent-kafka-go/v2`][confluent-kafka-go/v2] and [`franz-go`][franz-go],
-found in the `confluent` and `franz` packages, respectively.
+found in the [`confluent`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/confluent) and [`franz`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/franz) packages, respectively.
 
 ```console
 $ go get github.com/bufbuild/bsr-kafka-serde-go
@@ -20,11 +23,11 @@ $ go get github.com/bufbuild/bsr-kafka-serde-go
 
 ### confluent-kafka-go/v2
 
-See [confluent/example/main.go](./confluent/example/main.go)
+See [confluent/example/main.go](./confluent/example/main.go).
 
 ### franz-go
 
-See [franz/example/main.go](./franz/example/main.go)
+See [franz/example/main.go](./franz/example/main.go).
 
 ## Status: Beta
 
