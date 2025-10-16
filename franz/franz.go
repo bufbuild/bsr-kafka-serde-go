@@ -42,7 +42,8 @@ type Serde interface {
 	DeserializeTo(record *kgo.Record, dest proto.Message) error
 }
 
-// New creates a new [Serde] for deserializing [proto.Message] values from [kgo.Record]s.
+// New creates a new [Serde] for serializing and deserializing [proto.Message] values to and from
+// [kgo.Record] values.
 func New(host string, options ...serde.Option) Serde {
 	return &franzSerde{
 		serde: internalserde.New(host, options...),
@@ -53,7 +54,7 @@ type franzSerde struct {
 	serde *internalserde.Serde
 }
 
-// Serialize serializes src into a [kgo.Record] suitable to producing to a topic.
+// Serialize serializes src into a [*kgo.Record] suitable to producing to a topic.
 func (s *franzSerde) Serialize(src proto.Message) (*kgo.Record, error) {
 	value, err := proto.Marshal(src)
 	if err != nil {

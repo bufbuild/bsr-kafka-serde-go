@@ -42,7 +42,8 @@ type Serde interface {
 	DeserializeTo(message *kafka.Message, dest proto.Message) error
 }
 
-// New creates a new [Serde] for deserializing [proto.Message] values from [kafka.Message]s.
+// New creates a new [Serde] for serializing and deserializing [proto.Message] values to and from
+// [kafka.Message] values.
 func New(host string, options ...serde.Option) Serde {
 	return &confluentSerde{
 		serde: internalserde.New(host, options...),
@@ -53,7 +54,7 @@ type confluentSerde struct {
 	serde *internalserde.Serde
 }
 
-// Serialize serializes src into a [kafka.Message] suitable to producing to a topic.
+// Serialize serializes src into a [*kafka.Message] suitable to producing to a topic.
 func (s *confluentSerde) Serialize(src proto.Message) (*kafka.Message, error) {
 	value, err := proto.Marshal(src)
 	if err != nil {
