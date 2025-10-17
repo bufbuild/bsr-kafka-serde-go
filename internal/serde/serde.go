@@ -118,9 +118,11 @@ func (s *Serde) Deserialize(ctx context.Context, value []byte, commit, messageFQ
 		response, err, _ := s.sfGroup.Do(key.String(), func() (any, error) {
 			return retry.DoValue(
 				ctx,
-				retry.WithMaxDuration(
-					30*time.Second,
-					retry.NewExponential(time.Second),
+				retry.WithJitter(100*time.Millisecond,
+					retry.WithMaxDuration(
+						30*time.Second,
+						retry.NewExponential(time.Second),
+					),
 				),
 				func(ctx context.Context) (*modulev1.GetFileDescriptorSetResponse, error) {
 					response, err := s.fileDescriptorSetClient.GetFileDescriptorSet(ctx, &modulev1.GetFileDescriptorSetRequest{
