@@ -36,12 +36,6 @@ import (
 	"google.golang.org/protobuf/types/dynamicpb"
 )
 
-// Headers that Bufstream will stamp on records when validation is enabled.
-const (
-	BufRegistryValueSchemaMessage = "buf.registry.value.schema.message"
-	BufRegistryValueSchemaCommit  = "buf.registry.value.schema.commit"
-)
-
 const negativeCacheExpiry = 1 * time.Minute
 
 // New creates a new [Serde].
@@ -83,10 +77,10 @@ type Serde struct {
 func (s *Serde) Deserialize(ctx context.Context, value []byte, commit, messageFQN string, now func() time.Time) (proto.Message, error) {
 	// Validate that we have what we need.
 	if commit == "" {
-		return nil, fmt.Errorf("could not find %q header in record", BufRegistryValueSchemaCommit)
+		return nil, fmt.Errorf("could not find %q header in record", serde.BufRegistryValueSchemaCommit)
 	}
 	if messageFQN == "" {
-		return nil, fmt.Errorf("could not find %q header in record", BufRegistryValueSchemaMessage)
+		return nil, fmt.Errorf("could not find %q header in record", serde.BufRegistryValueSchemaMessage)
 	}
 	messageFullName := protoreflect.FullName(messageFQN)
 	if !messageFullName.IsValid() {

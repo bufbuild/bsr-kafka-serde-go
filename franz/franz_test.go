@@ -28,7 +28,6 @@ import (
 	extensionv1beta1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/priv/extension/v1beta1"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
 	"github.com/bufbuild/bsr-kafka-serde-go/confluent"
-	internalserde "github.com/bufbuild/bsr-kafka-serde-go/internal/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
@@ -61,11 +60,11 @@ func TestFranz(t *testing.T) {
 	// Bufstream, internally, will stamp these headers.
 	record.Headers = append(record.Headers,
 		kafka.Header{
-			Key:   internalserde.BufRegistryValueSchemaMessage,
+			Key:   serde.BufRegistryValueSchemaMessage,
 			Value: []byte(commit.ProtoReflect().Descriptor().FullName()),
 		},
 		kafka.Header{
-			Key:   internalserde.BufRegistryValueSchemaCommit,
+			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(commitID),
 		},
 	)

@@ -74,10 +74,10 @@ func (s *confluentSerde) Deserialize(ctx context.Context, message *kafka.Message
 		messageFQN string
 	)
 	for _, header := range message.Headers {
-		if header.Key == internalserde.BufRegistryValueSchemaCommit {
+		if header.Key == serde.BufRegistryValueSchemaCommit {
 			commit = string(header.Value)
 		}
-		if header.Key == internalserde.BufRegistryValueSchemaMessage {
+		if header.Key == serde.BufRegistryValueSchemaMessage {
 			messageFQN = string(header.Value)
 		}
 	}
@@ -90,18 +90,18 @@ func (s *confluentSerde) Deserialize(ctx context.Context, message *kafka.Message
 func (s *confluentSerde) DeserializeTo(message *kafka.Message, dest proto.Message) error {
 	var messageFQN string
 	for _, header := range message.Headers {
-		if header.Key == internalserde.BufRegistryValueSchemaMessage {
+		if header.Key == serde.BufRegistryValueSchemaMessage {
 			messageFQN = string(header.Value)
 			break
 		}
 	}
 	if messageFQN == "" {
-		return fmt.Errorf("message does not have %q header set", internalserde.BufRegistryValueSchemaMessage)
+		return fmt.Errorf("message does not have %q header set", serde.BufRegistryValueSchemaMessage)
 	}
 	if destFQN := string(dest.ProtoReflect().Descriptor().FullName()); messageFQN != destFQN {
 		return fmt.Errorf(
 			"message header %q value %q does not match fully qualified name of %q",
-			internalserde.BufRegistryValueSchemaMessage,
+			serde.BufRegistryValueSchemaMessage,
 			messageFQN,
 			destFQN,
 		)
