@@ -13,8 +13,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
-	github.com/twmb/franz-go v1.19.5
-	github.com/twmb/franz-go/pkg/kadm v1.16.1
+	github.com/twmb/franz-go v1.20.1
+	github.com/twmb/franz-go/pkg/kadm v1.17.1
 	golang.org/x/sync v0.17.0
 	google.golang.org/protobuf v1.36.10
 )
@@ -30,7 +30,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.4 // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/moby/go-archive v0.1.0 // indirect
@@ -44,7 +44,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/twmb/franz-go/pkg/kmsg v1.11.2 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
