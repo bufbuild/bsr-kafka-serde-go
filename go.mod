@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
-	github.com/twmb/franz-go v1.20.1
+	github.com/twmb/franz-go v1.20.5
 	github.com/twmb/franz-go/pkg/kadm v1.17.1
 	golang.org/x/sync v0.19.0
 	google.golang.org/protobuf v1.36.10
