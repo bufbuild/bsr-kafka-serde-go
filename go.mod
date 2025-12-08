@@ -4,8 +4,8 @@ go 1.24.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20250717185734-6c6e0d3c608e.1
-	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20250924144421-cb55f06efbd2.1
-	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.10-20250924144421-cb55f06efbd2.1
+	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20251202164234-62b14f0b533c.2
+	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.10-20251202164234-62b14f0b533c.1
 	connectrpc.com/connect v1.19.1
 	demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.10-20250429161923-5c792fd712d4.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.12.0
