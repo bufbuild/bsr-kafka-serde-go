@@ -7,7 +7,7 @@ require (
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20251202164234-62b14f0b533c.2
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.10-20251202164234-62b14f0b533c.1
 	connectrpc.com/connect v1.19.1
-	demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.10-20250429161923-5c792fd712d4.1
+	demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.11-20250429161923-5c792fd712d4.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.12.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -16,11 +16,11 @@ require (
 	github.com/twmb/franz-go v1.20.5
 	github.com/twmb/franz-go/pkg/kadm v1.17.1
 	golang.org/x/sync v0.19.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
-	demo.buf.dev/gen/go/bufbuild/confluent/protocolbuffers/go v1.36.10-20241001224917-12f52fdd8338.1 // indirect
+	demo.buf.dev/gen/go/bufbuild/confluent/protocolbuffers/go v1.36.11-20241001224917-12f52fdd8338.1 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
