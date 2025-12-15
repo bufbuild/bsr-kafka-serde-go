@@ -3,7 +3,7 @@ module github.com/bufbuild/bsr-kafka-serde-go
 go 1.24.0
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20250717185734-6c6e0d3c608e.1
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20251209175733-2a1774d88802.1
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20251202164234-62b14f0b533c.2
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.10-20251202164234-62b14f0b533c.1
 	connectrpc.com/connect v1.19.1
@@ -16,7 +16,7 @@ require (
 	github.com/twmb/franz-go v1.20.5
 	github.com/twmb/franz-go/pkg/kadm v1.17.1
 	golang.org/x/sync v0.19.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
