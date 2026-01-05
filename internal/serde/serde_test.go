@@ -39,6 +39,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -111,6 +112,7 @@ func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, req *modulev1.GetFi
 				protodesc.ToFileDescriptorProto(descriptorpb.File_google_protobuf_descriptor_proto),
 				protodesc.ToFileDescriptorProto(durationpb.File_google_protobuf_duration_proto),
 				protodesc.ToFileDescriptorProto(timestamppb.File_google_protobuf_timestamp_proto),
+				protodesc.ToFileDescriptorProto(fieldmaskpb.File_google_protobuf_field_mask_proto),
 			},
 		},
 		Commit: &modulev1.Commit{
