@@ -18,22 +18,16 @@ jobs:
       matrix:
         go-version:
         - name: latest
-          version: 1.25.x
+          version: 1.26.x
         - name: previous
-          version: 1.24.x
+          version: 1.25.x
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-      - name: Install Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version.version }}
-      - name: Test
-        run: make test
-      - name: Lint
-        # Often, lint & gofmt guidelines depend on the Go version. To prevent
+      - run: make test
+      - # Often, lint & gofmt guidelines depend on the Go version. To prevent
         # conflicting guidance, run only on the most recent supported version.
         # For the same reason, only check generated code on the most recent
         # supported version.
