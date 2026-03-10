@@ -12,7 +12,7 @@ It uses the following Kafka record headers to serialize and deserialize record v
 
 * `buf.registry.value.schema.message` - The full name of the Protobuf message stored in the record's value (e.g. `payment.v1alpha1.Order`).
 * `buf.registry.value.schema.commit` - The BSR commit ID for the Protobuf message's schema.
-  The serializer sets this automatically from the generated SDK module's pseudo-version at build time.
+  The serializer sets this automatically by resolving the generated SDK module's pseudo-version against the BSR API.
   Bufstream also sets this header when configured to use [semantic validation][bufstream-semantic-validation].
 
 ## Usage
