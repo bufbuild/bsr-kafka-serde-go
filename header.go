@@ -14,10 +14,12 @@
 
 package serde
 
-// Headers used to deserialize Kafka records using the BSR.
+// Headers used to serialize and deserialize Kafka records using the BSR.
 const (
 	// BufRegistryValueSchemaMessage is the Kafka record header name for the fully qualified Protobuf message.
 	BufRegistryValueSchemaMessage = "buf.registry.value.schema.message"
 	// BufRegistryValueSchemaCommit is the Kafka record header name for the BSR's commit ID.
+	// Set by the serializer by resolving the generated SDK module's pseudo-version commit against
+	// the BSR API, and read by the deserializer to look up the schema from BSR.
 	BufRegistryValueSchemaCommit = "buf.registry.value.schema.commit"
 )

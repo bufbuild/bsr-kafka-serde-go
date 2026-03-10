@@ -27,11 +27,11 @@ import (
 	modulev1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
 	extensionv1beta1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/priv/extension/v1beta1"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
-	"github.com/bufbuild/bsr-kafka-serde-go/confluent"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/bufbuild/bsr-kafka-serde-go/franz"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -48,41 +48,65 @@ func TestFranz(t *testing.T) {
 	server := newServer(t, handler)
 	serverURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
-	confluentSerde := confluent.New(
+	franzSerde := franz.New(
 		serverURL.Host,
 		serde.WithHTTPClient(server.Client()),
 	)
 	commit := &modulev1.Commit{
 		Id: commitID,
 	}
-	record, err := confluentSerde.Serialize(commit)
+	record, err := franzSerde.Serialize(ctx, commit)
 	require.NoError(t, err)
 
 	// Bufstream, internally, will stamp these headers.
 	record.Headers = append(record.Headers,
-		kafka.Header{
+		kgo.RecordHeader{
 			Key:   serde.BufRegistryValueSchemaMessage,
 			Value: []byte(commit.ProtoReflect().Descriptor().FullName()),
 		},
-		kafka.Header{
+		kgo.RecordHeader{
 			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(commitID),
 		},
 	)
 
 	newCommit := &modulev1.Commit{}
-	require.NoError(t, confluentSerde.DeserializeTo(record, newCommit))
+	require.NoError(t, franzSerde.DeserializeTo(record, newCommit))
 
 	assert.Empty(t, cmp.Diff(commit, newCommit, protocmp.Transform()))
 
 	// If we _didn't_ know the type, we can hit the FDS service and deserialize that way.
-	dynamicMessage, err := confluentSerde.Deserialize(ctx, record)
+	dynamicMessage, err := franzSerde.Deserialize(ctx, record)
 	require.NoError(t, err)
 
 	assert.Empty(t, cmp.Diff(commit, dynamicMessage, protocmp.Transform()))
 }
 
+func TestFranzSerializeSDKCommitHeader(t *testing.T) {
+	t.Parallel()
+	// timestamppb.Timestamp is from google.golang.org/protobuf, which uses regular semver with
+	// no BSR commit embedded. Serialize will not make any BSR calls and must not add the SDK
+	// commit header, so no server is needed.
+	franzSerde := franz.New("test.example.com")
+	// The positive case (gen SDK types producing a non-empty commit) is exercised by
+	// TestFranzSerializeSDKCommitHeader in franz/example.
+	record, err := franzSerde.Serialize(t.Context(), &timestamppb.Timestamp{})
+	require.NoError(t, err)
+	assert.Empty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
+}
+
+func findHeader(headers []kgo.RecordHeader, key string) string {
+	for _, h := range headers {
+		if h.Key == key {
+			return string(h.Value)
+		}
+	}
+	return ""
+}
+
 type fdsHandler struct {
+	modulev1connect.UnimplementedCommitServiceHandler
+
 	commitID string
 }
 
@@ -106,9 +130,16 @@ func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, _ *modulev1.GetFile
 	}, nil
 }
 
-func newServer(t *testing.T, svc modulev1connect.FileDescriptorSetServiceHandler) *httptest.Server {
+func (h *fdsHandler) ListCommits(_ context.Context, _ *modulev1.ListCommitsRequest) (*modulev1.ListCommitsResponse, error) {
+	return &modulev1.ListCommitsResponse{
+		Commits: []*modulev1.Commit{{Id: h.commitID}},
+	}, nil
+}
+
+func newServer(t *testing.T, svc *fdsHandler) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.Handle(modulev1connect.NewFileDescriptorSetServiceHandler(svc))
+	mux.Handle(modulev1connect.NewCommitServiceHandler(svc))
 	return httptest.NewTLSServer(mux)
 }

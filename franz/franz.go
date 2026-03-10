@@ -31,7 +31,7 @@ import (
 // messages from BSR modules.
 type Serde interface {
 	// Serialize serializes src into a [*kgo.Record] suitable to producing to a topic.
-	Serialize(src proto.Message) (*kgo.Record, error)
+	Serialize(ctx context.Context, src proto.Message) (*kgo.Record, error)
 	// Deserialize deserializes the given record into a [proto.Message], based on the
 	// "buf.registry.value.schema.commit" and "buf.registry.value.schema.message"
 	// headers of the message.
@@ -55,14 +55,23 @@ type franzSerde struct {
 }
 
 // Serialize serializes src into a [*kgo.Record] suitable to producing to a topic.
-func (s *franzSerde) Serialize(src proto.Message) (*kgo.Record, error) {
+func (s *franzSerde) Serialize(ctx context.Context, src proto.Message) (*kgo.Record, error) {
 	value, err := proto.Marshal(src)
 	if err != nil {
 		return nil, fmt.Errorf("serializing proto: %w", err)
 	}
-	return &kgo.Record{
-		Value: value,
-	}, nil
+	record := &kgo.Record{Value: value}
+	sdkCommit, err := s.serde.GenSDKCommitFromMessage(ctx, src)
+	if err != nil {
+		return nil, fmt.Errorf("resolving BSR commit for serialized message: %w", err)
+	}
+	if sdkCommit != "" {
+		record.Headers = []kgo.RecordHeader{{
+			Key:   serde.BufRegistryValueSchemaCommit,
+			Value: []byte(sdkCommit),
+		}}
+	}
+	return record, nil
 }
 
 // Deserialize deserializes the given record into a [proto.Message], based on the

@@ -8,13 +8,12 @@
 [![Slack](https://img.shields.io/badge/slack-buf-%23e01563)](https://buf.build/links/slack)
 
 [bsr-kafka-serde-go][bsr-kafka-serde-go] provides a Kafka serializer and deserializer in Go for working with schemas defined in the [Buf Schema Registry][bsr].
-It uses the following Kafka record headers to automatically deserialize record values from Protobuf:
+It uses the following Kafka record headers to serialize and deserialize record values from Protobuf:
 
 * `buf.registry.value.schema.message` - The full name of the Protobuf message stored in the record's value (e.g. `payment.v1alpha1.Order`).
-* `buf.registry.value.schema.commit` - The BSR commit ID for the Protobuf message's schema (e.g. `9a877cf260e1488d869a31fce3bea26d`).
-
-These headers are automatically added to records produced to Bufstream when Bufstream is configured to use [semantic validation][bufstream-semantic-validation].
-To use the deserializer with other brokers, it is up to producers to write record headers.
+* `buf.registry.value.schema.commit` - The BSR commit ID for the Protobuf message's schema.
+  The serializer sets this automatically from the generated SDK module's pseudo-version at build time.
+  Bufstream also sets this header when configured to use [semantic validation][bufstream-semantic-validation].
 
 ## Usage
 

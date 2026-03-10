@@ -19,7 +19,7 @@ help: ## Describe useful make targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-30s %s\n", $$1, $$2}'
 
 .PHONY: all
-all: ## Build, test, and lint (default)
+all: ## Test and lint (default)
 	$(MAKE) test
 	$(MAKE) lint
 
@@ -29,12 +29,8 @@ clean: ## Delete intermediate build artifacts
 	git clean -Xdf
 
 .PHONY: test
-test: build ## Run unit tests
+test: ## Run unit tests
 	go test -vet=off -race -cover ./...
-
-.PHONY: build
-build: generate ## Build all packages
-	go build ./...
 
 .PHONY: generate
 generate: $(BIN)/license-header ## Regenerate code and licenses
@@ -52,15 +48,6 @@ lint: $(BIN)/golangci-lint ## Lint
 .PHONY: lintfix
 lintfix: $(BIN)/golangci-lint ## Automatically fix some lint errors
 	golangci-lint run --fix --modules-download-mode=readonly --timeout=3m0s
-
-.PHONY: install
-install: ## Install all binaries
-	go install ./...
-
-.PHONY: upgrade
-upgrade: ## Upgrade dependencies
-	go get -u -t ./...
-	go mod tidy -v
 
 .PHONY: checkgenerate
 checkgenerate:

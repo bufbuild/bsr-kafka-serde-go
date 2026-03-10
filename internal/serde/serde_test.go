@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime/debug"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -42,6 +43,155 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestExtractCommitFromPseudoVersion(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version string
+		want    string
+	}{
+		{
+			version: "v1.19.1-20260126144947-819582968857.2",
+			want:    "819582968857",
+		},
+		{
+			version: "v1.36.11-20260126144947-819582968857.1",
+			want:    "819582968857",
+		},
+		{
+			version: "v1.36.11", // regular semver, no commit
+			want:    "",
+		},
+		{
+			version: "v0.0.0-20250101000000-abcdef123456.1",
+			want:    "abcdef123456",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, extractCommitFromPseudoVersion(tt.version))
+		})
+	}
+}
+
+func TestFindDepForPkgPath(t *testing.T) {
+	t.Parallel()
+	registryDep := &debug.Module{
+		Path:    "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+		Version: "v1.36.11-20260126144947-819582968857.1",
+	}
+	protovalidateDep := &debug.Module{
+		Path:    "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+		Version: "v1.36.11-20260209202127-80ab13bee0bf.1",
+	}
+	googleDep := &debug.Module{
+		Path:    "google.golang.org/protobuf",
+		Version: "v1.36.11",
+	}
+	deps := []*debug.Module{registryDep, protovalidateDep, googleDep}
+
+	t.Run("generated SDK module matches longest prefix", func(t *testing.T) {
+		t.Parallel()
+		// Package path is deeper than the module path; the module is the longest prefix.
+		pkgPath := "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
+		dep := findDepForPkgPath(pkgPath, deps)
+		require.NotNil(t, dep)
+		assert.Equal(t, "819582968857", extractCommitFromPseudoVersion(dep.Version))
+	})
+	t.Run("local type with regular semver returns no commit", func(t *testing.T) {
+		t.Parallel()
+		// google.golang.org/protobuf uses regular semver; no commit can be extracted.
+		pkgPath := "google.golang.org/protobuf/types/known/timestamppb"
+		dep := findDepForPkgPath(pkgPath, deps)
+		require.NotNil(t, dep)
+		assert.Empty(t, extractCommitFromPseudoVersion(dep.Version))
+	})
+	t.Run("no matching dep returns nil", func(t *testing.T) {
+		t.Parallel()
+		pkgPath := "example.com/some/local/package"
+		assert.Nil(t, findDepForPkgPath(pkgPath, deps))
+	})
+	t.Run("empty dep list returns nil", func(t *testing.T) {
+		t.Parallel()
+		pkgPath := "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
+		assert.Nil(t, findDepForPkgPath(pkgPath, nil))
+	})
+}
+
+func TestParseGenSDKModulePath(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		modulePath string
+		wantOwner  string
+		wantModule string
+		wantOK     bool
+	}{
+		{
+			modulePath: "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			wantOwner:  "bufbuild",
+			wantModule: "registry",
+			wantOK:     true,
+		},
+		{
+			modulePath: "demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go",
+			wantOwner:  "bufbuild",
+			wantModule: "bufstream-demo",
+			wantOK:     true,
+		},
+		{
+			modulePath: "google.golang.org/protobuf",
+			wantOK:     false,
+		},
+		{
+			modulePath: "buf.build/gen/go/bufbuild",
+			wantOK:     false,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.modulePath, func(t *testing.T) {
+			t.Parallel()
+			owner, module, ok := parseGenSDKModulePath(testCase.modulePath)
+			assert.Equal(t, testCase.wantOK, ok)
+			assert.Equal(t, testCase.wantOwner, owner)
+			assert.Equal(t, testCase.wantModule, module)
+		})
+	}
+}
+
+func TestParsePseudoVersionTimestamp(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		version  string
+		wantTime string // RFC3339
+		wantOK   bool
+	}{
+		{
+			version:  "v1.36.11-20260126144947-819582968857.1",
+			wantTime: "2026-01-26T14:49:47Z",
+			wantOK:   true,
+		},
+		{
+			version:  "v0.0.0-20250101000000-abcdef123456.1",
+			wantTime: "2025-01-01T00:00:00Z",
+			wantOK:   true,
+		},
+		{
+			version: "v1.36.11", // regular semver, no timestamp
+			wantOK:  false,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.version, func(t *testing.T) {
+			t.Parallel()
+			ts, ok := parsePseudoVersionTimestamp(testCase.version)
+			assert.Equal(t, testCase.wantOK, ok)
+			if testCase.wantOK {
+				assert.Equal(t, testCase.wantTime, ts.UTC().Format(time.RFC3339))
+			}
+		})
+	}
+}
 
 func TestSerde(t *testing.T) {
 	t.Parallel()
@@ -134,9 +284,137 @@ func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, req *modulev1.GetFi
 	return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
 }
 
+func TestResolveCommit(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	// depVersion and its embedded timestamp, used for multi-result disambiguation.
+	const (
+		depPath     = "buf.build/gen/go/bufbuild/registry/protocolbuffers/go"
+		depVersion  = "v1.36.11-20260126144947-819582968857.1"
+		shortCommit = "819582968857"
+	)
+	// ts is the timestamp embedded in depVersion.
+	ts, err := time.Parse("20060102150405", "20260126144947")
+	require.NoError(t, err)
+	// newTestSerde creates a fresh Serde backed by a new server+handler, giving each sub-test
+	// an isolated cache and call counter.
+	newTestSerde := func(commitID string) (*Serde, *commitHandler) {
+		handler := &commitHandler{commitID: commitID, ts: ts}
+		server := newCommitServer(t, handler)
+		serverURL, err := url.Parse(server.URL)
+		require.NoError(t, err)
+		return New(serverURL.Host, serde.WithHTTPClient(server.Client())), handler
+	}
+
+	t.Run("single result", func(t *testing.T) {
+		t.Parallel()
+		commitID := rand.Text()
+		s, _ := newTestSerde(commitID)
+		commit, err := s.resolveCommit(ctx, depPath, depVersion, shortCommit)
+		require.NoError(t, err)
+		assert.Equal(t, commitID, commit)
+	})
+	t.Run("multiple results match timestamp", func(t *testing.T) {
+		t.Parallel()
+		commitID := rand.Text()
+		s, _ := newTestSerde(commitID)
+		commit, err := s.resolveCommit(ctx, depPath, depVersion, "multi")
+		require.NoError(t, err)
+		assert.Equal(t, commitID, commit)
+	})
+	t.Run("multiple results no timestamp match", func(t *testing.T) {
+		t.Parallel()
+		s, _ := newTestSerde(rand.Text())
+		_, err := s.resolveCommit(ctx, depPath, depVersion, "nomatch")
+		require.Error(t, err)
+	})
+	t.Run("no results", func(t *testing.T) {
+		t.Parallel()
+		s, _ := newTestSerde(rand.Text())
+		_, err := s.resolveCommit(ctx, depPath, depVersion, "empty")
+		require.Error(t, err)
+	})
+	t.Run("cached", func(t *testing.T) {
+		t.Parallel()
+		commitID := rand.Text()
+		s, handler := newTestSerde(commitID)
+		for range 3 {
+			commit, err := s.resolveCommit(ctx, depPath, depVersion, shortCommit)
+			require.NoError(t, err)
+			assert.Equal(t, commitID, commit)
+		}
+		// Only one BSR call should have been made despite three resolveCommit calls.
+		assert.Equal(t, int32(1), handler.calls.Load())
+	})
+	t.Run("retries", func(t *testing.T) {
+		t.Parallel()
+		commitID := rand.Text()
+		s, handler := newTestSerde(commitID)
+		commit, err := s.resolveCommit(ctx, depPath, depVersion, "retry")
+		require.NoError(t, err)
+		assert.Equal(t, commitID, commit)
+		// Should have hit the handler three times; first two were retried transparently.
+		assert.Equal(t, int32(3), handler.retries.Load())
+	})
+}
+
+type commitHandler struct {
+	modulev1connect.UnimplementedCommitServiceHandler
+
+	commitID string
+	ts       time.Time // expected timestamp for multi-result tests
+
+	calls   atomic.Int32
+	retries atomic.Int32
+}
+
+func (h *commitHandler) ListCommits(_ context.Context, req *modulev1.ListCommitsRequest) (*modulev1.ListCommitsResponse, error) {
+	h.calls.Add(1)
+	switch req.GetIdQuery() {
+	case "multi":
+		// Return two commits: one with the matching timestamp, one without.
+		return &modulev1.ListCommitsResponse{
+			Commits: []*modulev1.Commit{
+				{Id: "other-id", CreateTime: timestamppb.New(h.ts.Add(time.Hour))},
+				{Id: h.commitID, CreateTime: timestamppb.New(h.ts)},
+			},
+		}, nil
+	case "nomatch":
+		// Return two commits, neither with the matching timestamp.
+		return &modulev1.ListCommitsResponse{
+			Commits: []*modulev1.Commit{
+				{Id: "commit-a", CreateTime: timestamppb.New(h.ts.Add(time.Hour))},
+				{Id: "commit-b", CreateTime: timestamppb.New(h.ts.Add(2 * time.Hour))},
+			},
+		}, nil
+	case "empty":
+		return &modulev1.ListCommitsResponse{}, nil
+	case "retry":
+		h.retries.Add(1)
+		if h.retries.Load() > 2 {
+			return &modulev1.ListCommitsResponse{
+				Commits: []*modulev1.Commit{{Id: h.commitID}},
+			}, nil
+		}
+		return nil, connect.NewError(connect.CodeUnavailable, errors.New("unavailable"))
+	default:
+		// Default: single result.
+		return &modulev1.ListCommitsResponse{
+			Commits: []*modulev1.Commit{{Id: h.commitID}},
+		}, nil
+	}
+}
+
 func newServer(t *testing.T, svc modulev1connect.FileDescriptorSetServiceHandler) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.Handle(modulev1connect.NewFileDescriptorSetServiceHandler(svc))
+	return httptest.NewTLSServer(mux)
+}
+
+func newCommitServer(t *testing.T, svc modulev1connect.CommitServiceHandler) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle(modulev1connect.NewCommitServiceHandler(svc))
 	return httptest.NewTLSServer(mux)
 }
