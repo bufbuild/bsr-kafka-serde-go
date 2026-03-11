@@ -55,15 +55,13 @@ func TestConfluent(t *testing.T) {
 	commit := &modulev1.Commit{
 		Id: commitID,
 	}
-	message, err := confluentSerde.Serialize(commit)
+	message, err := confluentSerde.Serialize(ctx, commit)
 	require.NoError(t, err)
+	// Serialize stamps the message header.
+	assert.Equal(t, string(commit.ProtoReflect().Descriptor().FullName()), findHeader(message.Headers, serde.BufRegistryValueSchemaMessage))
 
-	// Bufstream, internally, will stamp these headers.
+	// Bufstream, internally, will stamp the commit header.
 	message.Headers = append(message.Headers,
-		kafka.Header{
-			Key:   serde.BufRegistryValueSchemaMessage,
-			Value: []byte(commit.ProtoReflect().Descriptor().FullName()),
-		},
 		kafka.Header{
 			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(commitID),
@@ -82,7 +80,33 @@ func TestConfluent(t *testing.T) {
 	assert.Empty(t, cmp.Diff(commit, dynamicMessage, protocmp.Transform()))
 }
 
+func TestConfluentSerializeSDKCommitHeader(t *testing.T) {
+	t.Parallel()
+	// timestamppb.Timestamp is from google.golang.org/protobuf, which uses regular semver with
+	// no BSR commit embedded. Serialize will not make any BSR calls and must not add the SDK
+	// commit header, so no server is needed.
+	confluentSerde := confluent.New("test.example.com")
+	// The positive case (gen SDK types producing a non-empty commit) is exercised by
+	// TestConfluentSerializeSDKCommitHeader in confluent/example.
+	ts := &timestamppb.Timestamp{}
+	msg, err := confluentSerde.Serialize(t.Context(), ts)
+	require.NoError(t, err)
+	assert.Empty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaCommit))
+	assert.Equal(t, string(ts.ProtoReflect().Descriptor().FullName()), findHeader(msg.Headers, serde.BufRegistryValueSchemaMessage))
+}
+
+func findHeader(headers []kafka.Header, key string) string {
+	for _, h := range headers {
+		if h.Key == key {
+			return string(h.Value)
+		}
+	}
+	return ""
+}
+
 type fdsHandler struct {
+	modulev1connect.UnimplementedCommitServiceHandler
+
 	commitID string
 }
 
@@ -106,9 +130,16 @@ func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, _ *modulev1.GetFile
 	}, nil
 }
 
-func newServer(t *testing.T, svc modulev1connect.FileDescriptorSetServiceHandler) *httptest.Server {
+func (h *fdsHandler) ListCommits(_ context.Context, _ *modulev1.ListCommitsRequest) (*modulev1.ListCommitsResponse, error) {
+	return &modulev1.ListCommitsResponse{
+		Commits: []*modulev1.Commit{{Id: h.commitID}},
+	}, nil
+}
+
+func newServer(t *testing.T, svc *fdsHandler) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.Handle(modulev1connect.NewFileDescriptorSetServiceHandler(svc))
+	mux.Handle(modulev1connect.NewCommitServiceHandler(svc))
 	return httptest.NewTLSServer(mux)
 }
