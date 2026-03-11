@@ -31,6 +31,10 @@ import (
 // messages from BSR modules.
 type Serde interface {
 	// Serialize serializes src into a [*kgo.Record] suitable to producing to a topic.
+	// It always sets the [serde.BufRegistryValueSchemaMessage] header from the message descriptor.
+	// If src is from a BSR-generated SDK module, it also resolves the full commit ID via the BSR
+	// API and sets the [serde.BufRegistryValueSchemaCommit] header. A failed BSR lookup returns
+	// an error; use [serde.WithoutCommitResolution] to opt out of commit resolution entirely.
 	Serialize(ctx context.Context, src proto.Message) (*kgo.Record, error)
 	// Deserialize deserializes the given record into a [proto.Message], based on the
 	// "buf.registry.value.schema.commit" and "buf.registry.value.schema.message"
@@ -60,16 +64,22 @@ func (s *franzSerde) Serialize(ctx context.Context, src proto.Message) (*kgo.Rec
 	if err != nil {
 		return nil, fmt.Errorf("serializing proto: %w", err)
 	}
-	record := &kgo.Record{Value: value}
+	record := &kgo.Record{
+		Value: value,
+		Headers: []kgo.RecordHeader{{
+			Key:   serde.BufRegistryValueSchemaMessage,
+			Value: []byte(src.ProtoReflect().Descriptor().FullName()),
+		}},
+	}
 	sdkCommit, err := s.serde.GenSDKCommitFromMessage(ctx, src)
 	if err != nil {
 		return nil, fmt.Errorf("resolving BSR commit for serialized message: %w", err)
 	}
 	if sdkCommit != "" {
-		record.Headers = []kgo.RecordHeader{{
+		record.Headers = append(record.Headers, kgo.RecordHeader{
 			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(sdkCommit),
-		}}
+		})
 	}
 	return record, nil
 }

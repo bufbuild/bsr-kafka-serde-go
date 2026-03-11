@@ -57,13 +57,11 @@ func TestConfluent(t *testing.T) {
 	}
 	message, err := confluentSerde.Serialize(ctx, commit)
 	require.NoError(t, err)
+	// Serialize stamps the message header.
+	assert.Equal(t, string(commit.ProtoReflect().Descriptor().FullName()), findHeader(message.Headers, serde.BufRegistryValueSchemaMessage))
 
-	// Bufstream, internally, will stamp these headers.
+	// Bufstream, internally, will stamp the commit header.
 	message.Headers = append(message.Headers,
-		kafka.Header{
-			Key:   serde.BufRegistryValueSchemaMessage,
-			Value: []byte(commit.ProtoReflect().Descriptor().FullName()),
-		},
 		kafka.Header{
 			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(commitID),
@@ -90,9 +88,11 @@ func TestConfluentSerializeSDKCommitHeader(t *testing.T) {
 	confluentSerde := confluent.New("test.example.com")
 	// The positive case (gen SDK types producing a non-empty commit) is exercised by
 	// TestConfluentSerializeSDKCommitHeader in confluent/example.
-	msg, err := confluentSerde.Serialize(t.Context(), &timestamppb.Timestamp{})
+	ts := &timestamppb.Timestamp{}
+	msg, err := confluentSerde.Serialize(t.Context(), ts)
 	require.NoError(t, err)
 	assert.Empty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaCommit))
+	assert.Equal(t, string(ts.ProtoReflect().Descriptor().FullName()), findHeader(msg.Headers, serde.BufRegistryValueSchemaMessage))
 }
 
 func findHeader(headers []kafka.Header, key string) string {

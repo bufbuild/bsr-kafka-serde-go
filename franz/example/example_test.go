@@ -35,6 +35,16 @@ func TestFranzSerializeSDKCommitHeader(t *testing.T) {
 	assert.NotEmpty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
 }
 
+func TestFranzWithoutCommitResolution(t *testing.T) {
+	t.Parallel()
+	// WithoutCommitResolution should suppress the commit header even for BSR-generated SDK types.
+	franzSerde := franz.New("demo.buf.dev", serde.WithoutCommitResolution())
+	record, err := franzSerde.Serialize(t.Context(), &demov1.EmailUpdated{})
+	require.NoError(t, err)
+	assert.Empty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
+	assert.NotEmpty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaMessage))
+}
+
 func findHeader(headers []kgo.RecordHeader, key string) string {
 	for _, h := range headers {
 		if h.Key == key {

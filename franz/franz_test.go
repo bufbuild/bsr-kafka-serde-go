@@ -57,13 +57,11 @@ func TestFranz(t *testing.T) {
 	}
 	record, err := franzSerde.Serialize(ctx, commit)
 	require.NoError(t, err)
+	// Serialize stamps the message header.
+	assert.Equal(t, string(commit.ProtoReflect().Descriptor().FullName()), findHeader(record.Headers, serde.BufRegistryValueSchemaMessage))
 
-	// Bufstream, internally, will stamp these headers.
+	// Bufstream, internally, will stamp the commit header.
 	record.Headers = append(record.Headers,
-		kgo.RecordHeader{
-			Key:   serde.BufRegistryValueSchemaMessage,
-			Value: []byte(commit.ProtoReflect().Descriptor().FullName()),
-		},
 		kgo.RecordHeader{
 			Key:   serde.BufRegistryValueSchemaCommit,
 			Value: []byte(commitID),
@@ -90,9 +88,11 @@ func TestFranzSerializeSDKCommitHeader(t *testing.T) {
 	franzSerde := franz.New("test.example.com")
 	// The positive case (gen SDK types producing a non-empty commit) is exercised by
 	// TestFranzSerializeSDKCommitHeader in franz/example.
-	record, err := franzSerde.Serialize(t.Context(), &timestamppb.Timestamp{})
+	ts := &timestamppb.Timestamp{}
+	record, err := franzSerde.Serialize(t.Context(), ts)
 	require.NoError(t, err)
 	assert.Empty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
+	assert.Equal(t, string(ts.ProtoReflect().Descriptor().FullName()), findHeader(record.Headers, serde.BufRegistryValueSchemaMessage))
 }
 
 func findHeader(headers []kgo.RecordHeader, key string) string {

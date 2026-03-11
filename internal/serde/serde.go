@@ -66,9 +66,11 @@ func New(host string, options ...serde.Option) *Serde {
 	}
 	baseURL := "https://" + host
 	return &Serde{
-		cache:           map[cacheKey]cacheValue{},
-		sfGroup:         &singleflight.Group{},
-		resolvedCommits: map[string]string{},
+		cache:                map[cacheKey]cacheValue{},
+		sfGroup:              &singleflight.Group{},
+		typeCommits:          map[reflect.Type]string{},
+		resolvedCommits:      map[string]string{},
+		skipCommitResolution: cfg.SkipCommitResolution,
 		fileDescriptorSetClient: modulev1connect.NewFileDescriptorSetServiceClient(
 			cfg.HTTPClient,
 			baseURL,
@@ -92,11 +94,19 @@ type Serde struct {
 	sfGroup                 *singleflight.Group
 	fileDescriptorSetClient modulev1connect.FileDescriptorSetServiceClient
 
+	// typeCommitsMutex guards typeCommits.
+	typeCommitsMutex sync.RWMutex
+	// typeCommits caches the resolved commit ID per message type. A stored empty string means the
+	// type is not from a BSR-generated SDK module (or has no pseudo-version short commit), and no
+	// BSR call should be made. This avoids repeated reflection and dep-scanning on every Serialize.
+	typeCommits map[reflect.Type]string
+
 	resolvedCommitsMutex sync.RWMutex
 	resolvedCommits      map[string]string // module path → full commit ID
 
-	commitClient  modulev1connect.CommitServiceClient
-	commitSFGroup *singleflight.Group
+	commitClient         modulev1connect.CommitServiceClient
+	commitSFGroup        *singleflight.Group
+	skipCommitResolution bool
 }
 
 // Deserialize deserializes the value into a [proto.Message], based on the commit and messageFQN.
@@ -218,19 +228,46 @@ func (s *Serde) Deserialize(ctx context.Context, value []byte, commit, messageFQ
 // the build info, then resolves it to the full commit ID via the BSR API.
 // Returns an empty string and no error if the type is not from a BSR-generated SDK module.
 func (s *Serde) GenSDKCommitFromMessage(ctx context.Context, src proto.Message) (string, error) {
+	if s.skipCommitResolution {
+		return "", nil
+	}
 	msgType := reflect.TypeOf(src)
 	if msgType.Kind() == reflect.Pointer {
 		msgType = msgType.Elem()
 	}
+	// Check the per-type cache first to avoid repeated reflection and dep-scanning.
+	s.typeCommitsMutex.RLock()
+	cached, ok := s.typeCommits[msgType]
+	s.typeCommitsMutex.RUnlock()
+	if ok {
+		return cached, nil
+	}
 	dep := findDepForPkgPath(msgType.PkgPath(), buildDeps())
 	if dep == nil {
+		// Not a BSR-generated SDK module; cache the negative result.
+		s.typeCommitsMutex.Lock()
+		s.typeCommits[msgType] = ""
+		s.typeCommitsMutex.Unlock()
 		return "", nil
 	}
 	shortCommit := extractCommitFromPseudoVersion(dep.Version)
 	if shortCommit == "" {
+		// No pseudo-version short commit; cache the negative result.
+		s.typeCommitsMutex.Lock()
+		s.typeCommits[msgType] = ""
+		s.typeCommitsMutex.Unlock()
 		return "", nil
 	}
-	return s.resolveCommit(ctx, dep.Path, dep.Version, shortCommit)
+	commit, err := s.resolveCommit(ctx, dep.Path, dep.Version, shortCommit)
+	if err != nil {
+		// Do not cache errors; let the next call retry the BSR lookup.
+		return "", err
+	}
+	// Cache the resolved commit ID for this type.
+	s.typeCommitsMutex.Lock()
+	s.typeCommits[msgType] = commit
+	s.typeCommitsMutex.Unlock()
+	return commit, nil
 }
 
 type cacheKey struct {
@@ -266,7 +303,9 @@ func newUnaryBearerTokenInterceptor(token string) connect.Interceptor {
 
 // resolveCommit resolves a short commit ID extracted from a module pseudo-version to the full BSR
 // commit ID, using [modulev1connect.CommitServiceClient.ListCommits] with an ID query. Results are
-// cached by module path; concurrent calls for the same module path are deduplicated.
+// cached by module path; concurrent calls for the same module path are deduplicated. Errors are
+// intentionally not cached: a transient BSR failure will block the produce call, but the next call
+// will retry rather than serving a stale error.
 func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCommit string) (string, error) {
 	s.resolvedCommitsMutex.RLock()
 	commit, ok := s.resolvedCommits[depPath]

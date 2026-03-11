@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"runtime/debug"
 	"sync/atomic"
 	"testing"
@@ -282,6 +283,56 @@ func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, req *modulev1.GetFi
 	}
 	h.misses.Add(1)
 	return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
+}
+
+func TestGenSDKCommitFromMessage(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+
+	t.Run("skip commit resolution", func(t *testing.T) {
+		t.Parallel()
+		// WithoutCommitResolution should short-circuit before any dep scan or BSR call.
+		serdeInstance := New("test.example.com", serde.WithoutCommitResolution())
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &timestamppb.Timestamp{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+		// typeCommits should be empty — we returned before populating it.
+		serdeInstance.typeCommitsMutex.RLock()
+		assert.Empty(t, serdeInstance.typeCommits)
+		serdeInstance.typeCommitsMutex.RUnlock()
+	})
+	t.Run("non-gen-SDK type gets negative cache entry", func(t *testing.T) {
+		t.Parallel()
+		// In a non-main test binary, buildDeps() returns nil, so timestamppb.Timestamp has no
+		// matching dep. The call should return "", nil and cache the negative result.
+		serdeInstance := New("test.example.com")
+		msgType := reflect.TypeFor[timestamppb.Timestamp]()
+
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &timestamppb.Timestamp{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+
+		serdeInstance.typeCommitsMutex.RLock()
+		cached, ok := serdeInstance.typeCommits[msgType]
+		serdeInstance.typeCommitsMutex.RUnlock()
+		assert.True(t, ok, "expected type to be cached after first call")
+		assert.Empty(t, cached, "expected empty string cached for non-gen-SDK type")
+	})
+	t.Run("subsequent calls use type cache", func(t *testing.T) {
+		t.Parallel()
+		// Pre-populate the type cache as if a previous call had resolved the commit.
+		// This verifies GenSDKCommitFromMessage returns the cached value without scanning deps.
+		serdeInstance := New("test.example.com")
+		msgType := reflect.TypeFor[timestamppb.Timestamp]()
+		const fakeCommit = "fakefullcommitid"
+		serdeInstance.typeCommitsMutex.Lock()
+		serdeInstance.typeCommits[msgType] = fakeCommit
+		serdeInstance.typeCommitsMutex.Unlock()
+
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &timestamppb.Timestamp{})
+		require.NoError(t, err)
+		assert.Equal(t, fakeCommit, commit)
+	})
 }
 
 func TestResolveCommit(t *testing.T) {

@@ -35,6 +35,16 @@ func TestConfluentSerializeSDKCommitHeader(t *testing.T) {
 	assert.NotEmpty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaCommit))
 }
 
+func TestConfluentWithoutCommitResolution(t *testing.T) {
+	t.Parallel()
+	// WithoutCommitResolution should suppress the commit header even for BSR-generated SDK types.
+	confluentSerde := confluent.New("demo.buf.dev", serde.WithoutCommitResolution())
+	msg, err := confluentSerde.Serialize(t.Context(), &demov1.EmailUpdated{})
+	require.NoError(t, err)
+	assert.Empty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaCommit))
+	assert.NotEmpty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaMessage))
+}
+
 func findHeader(headers []kafka.Header, key string) string {
 	for _, h := range headers {
 		if h.Key == key {
