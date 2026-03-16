@@ -31,7 +31,11 @@ import (
 // messages from BSR modules.
 type Serde interface {
 	// Serialize serializes src into a [*kafka.Message] suitable to producing to a topic.
-	Serialize(src proto.Message) (*kafka.Message, error)
+	// It always sets the [serde.BufRegistryValueSchemaMessage] header from the message descriptor.
+	// If src is from a BSR-generated SDK module, it also resolves the full commit ID via the BSR
+	// API and sets the [serde.BufRegistryValueSchemaCommit] header. A failed BSR lookup returns
+	// an error; use [serde.WithoutCommitResolution] to opt out of commit resolution entirely.
+	Serialize(ctx context.Context, src proto.Message) (*kafka.Message, error)
 	// Deserialize deserializes the given message into a [proto.Message], based on the
 	// "buf.registry.value.schema.commit" and "buf.registry.value.schema.message"
 	// headers of the message.
@@ -55,14 +59,29 @@ type confluentSerde struct {
 }
 
 // Serialize serializes src into a [*kafka.Message] suitable to producing to a topic.
-func (s *confluentSerde) Serialize(src proto.Message) (*kafka.Message, error) {
+func (s *confluentSerde) Serialize(ctx context.Context, src proto.Message) (*kafka.Message, error) {
 	value, err := proto.Marshal(src)
 	if err != nil {
 		return nil, fmt.Errorf("serializing proto: %w", err)
 	}
-	return &kafka.Message{
+	msg := &kafka.Message{
 		Value: value,
-	}, nil
+		Headers: []kafka.Header{{
+			Key:   serde.BufRegistryValueSchemaMessage,
+			Value: []byte(src.ProtoReflect().Descriptor().FullName()),
+		}},
+	}
+	sdkCommit, err := s.serde.GenSDKCommitFromMessage(ctx, src)
+	if err != nil {
+		return nil, fmt.Errorf("resolving BSR commit for serialized message: %w", err)
+	}
+	if sdkCommit != "" {
+		msg.Headers = append(msg.Headers, kafka.Header{
+			Key:   serde.BufRegistryValueSchemaCommit,
+			Value: []byte(sdkCommit),
+		})
+	}
+	return msg, nil
 }
 
 // Deserialize deserializes the given message into a [proto.Message], based on the

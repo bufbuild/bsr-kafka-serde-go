@@ -24,8 +24,9 @@ type Option interface {
 }
 
 type Config struct {
-	HTTPClient connect.HTTPClient
-	Token      string
+	HTTPClient           connect.HTTPClient
+	Token                string
+	SkipCommitResolution bool
 }
 
 // WithHTTPClient allows swapping out the http client used for interacting with the BSR.
@@ -43,6 +44,14 @@ func WithToken(token string) Option {
 	}
 }
 
+// WithoutCommitResolution disables automatic BSR commit resolution during serialization.
+// When set, Serialize will not look up the BSR commit for the serialized message and
+// will not set the [BufRegistryValueSchemaCommit] header. This is useful when the
+// commit header is set by another component (e.g. Bufstream) rather than the producer.
+func WithoutCommitResolution() Option {
+	return &withoutCommitResolutionOption{}
+}
+
 type httpClientOption struct {
 	httpClient connect.HTTPClient
 }
@@ -57,4 +66,10 @@ type tokenOption struct {
 
 func (o *tokenOption) ApplyToSerde(cfg *Config) {
 	cfg.Token = o.token
+}
+
+type withoutCommitResolutionOption struct{}
+
+func (o *withoutCommitResolutionOption) ApplyToSerde(cfg *Config) {
+	cfg.SkipCommitResolution = true
 }

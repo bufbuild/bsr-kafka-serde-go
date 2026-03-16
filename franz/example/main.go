@@ -61,7 +61,7 @@ func run(ctx context.Context) error {
 	}
 
 	serde := franz.New("demo.buf.dev")
-	record, err := serde.Serialize(&demov1.EmailUpdated{
+	record, err := serde.Serialize(ctx, &demov1.EmailUpdated{
 		Id:              uuid.New().String(),
 		OldEmailAddress: "test@example.com",
 		NewEmailAddress: "new@example.com",

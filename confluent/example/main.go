@@ -75,7 +75,7 @@ func run(ctx context.Context) error {
 	defer consumer.Close()
 
 	serde := confluent.New("demo.buf.dev")
-	message, err := serde.Serialize(&demov1.EmailUpdated{
+	message, err := serde.Serialize(ctx, &demov1.EmailUpdated{
 		Id:              uuid.New().String(),
 		OldEmailAddress: "test@example.com",
 		NewEmailAddress: "new@example.com",
