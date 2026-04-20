@@ -8,7 +8,7 @@ require (
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260126144947-819582968857.1
 	connectrpc.com/connect v1.19.1
 	demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.11-20250429161923-5c792fd712d4.1
-	github.com/confluentinc/confluent-kafka-go/v2 v2.14.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/sethvargo/go-retry v0.3.0
