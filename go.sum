@@ -1,11 +1,11 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1 h1:s6hzCXtND/ICdGPTMGk7C+/BFlr2Jg5GyH0NKf4XGXg=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20260126144947-819582968857.2 h1:V+kjoDNWWHzNZu3ZWGMfxyF7iJ7ElCJyYVp42Yy4x7g=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.1-20260126144947-819582968857.2/go.mod h1:LjlenDtJ3eiyJdKHZ6sETBPmP2E8hLUVuS/AquG6iDE=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.2-20260126144947-819582968857.1 h1:HDncvyX7vPpzMBlEZ9jHpZrVy6tMvyKLCRNxbyaU5j8=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.2-20260126144947-819582968857.1/go.mod h1:RJzs2xOcyx2l5W20VsS16ykVjuVuCDNipgrjHY6JCfc=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260126144947-819582968857.1 h1:Yreby6Ypa58wdQUEm9Fnc5g8n/jP487Dq3aK5yBYwfk=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260126144947-819582968857.1/go.mod h1:1JJi9jvOqRxSMa+JxiZSm57doB+db/1WYCIa2lHfc40=
-connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=
-connectrpc.com/connect v1.19.1/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
+connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.11-20250429161923-5c792fd712d4.1 h1:yQFlS+Xykqf46rvu0Lio5Asod/zZ+DxcEl0bCfpdMhY=
