@@ -18,10 +18,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
-	demov1 "demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go/bufstream/demo/v1"
+	logsv1 "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go/opentelemetry/proto/logs/v1"
 	"github.com/bufbuild/bsr-kafka-serde-go/franz"
-	"github.com/google/uuid"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
@@ -37,8 +37,8 @@ func main() {
 
 func run(ctx context.Context) error {
 	var (
-		module  = "demo.buf.dev/bufbuild/bufstream-demo"
-		message = "bufstream.demo.v1.EmailUpdated"
+		module  = "buf.build/opentelemetry/opentelemetry"
+		message = "opentelemetry.proto.logs.v1.LogRecord"
 		mode    = "reject"
 	)
 	client, err := kgo.NewClient(
@@ -60,14 +60,14 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("creating topic: %w", err)
 	}
 
-	serde := franz.New("demo.buf.dev")
-	record, err := serde.Serialize(ctx, &demov1.EmailUpdated{
-		Id:              uuid.New().String(),
-		OldEmailAddress: "test@example.com",
-		NewEmailAddress: "new@example.com",
+	serde := franz.New("buf.build")
+	record, err := serde.Serialize(ctx, &logsv1.LogRecord{
+		TimeUnixNano: uint64(time.Now().UnixNano()),
+		SeverityText: "INFO",
+		EventName:    "demo",
 	})
 	if err != nil {
-		return fmt.Errorf("serializing email updated: %w", err)
+		return fmt.Errorf("serializing log record: %w", err)
 	}
 	results := client.ProduceSync(ctx, record)
 	if err := results.FirstErr(); err != nil {
@@ -76,11 +76,11 @@ func run(ctx context.Context) error {
 
 	fs := client.PollFetches(ctx)
 	fs.EachRecord(func(r *kgo.Record) {
-		emailUpdated, err := serde.Deserialize(ctx, r)
+		logRecord, err := serde.Deserialize(ctx, r)
 		if err != nil {
 			fmt.Printf("deserializing record: %v", err)
 		} else {
-			fmt.Printf("Consumed value: %+v\n", emailUpdated)
+			fmt.Printf("Consumed value: %+v\n", logRecord)
 		}
 	})
 	return nil
