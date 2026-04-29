@@ -75,7 +75,6 @@ func run(ctx context.Context) error {
 
 	serde := confluent.New("buf.build")
 	message, err := serde.Serialize(ctx, &logsv1.LogRecord{
-		TimeUnixNano: uint64(time.Now().UnixNano()),
 		SeverityText: "INFO",
 		EventName:    "demo",
 	})

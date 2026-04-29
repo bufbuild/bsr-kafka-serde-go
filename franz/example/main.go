@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	logsv1 "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go/opentelemetry/proto/logs/v1"
 	"github.com/bufbuild/bsr-kafka-serde-go/franz"
@@ -62,7 +61,6 @@ func run(ctx context.Context) error {
 
 	serde := franz.New("buf.build")
 	record, err := serde.Serialize(ctx, &logsv1.LogRecord{
-		TimeUnixNano: uint64(time.Now().UnixNano()),
 		SeverityText: "INFO",
 		EventName:    "demo",
 	})
