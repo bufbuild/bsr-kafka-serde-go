@@ -20,10 +20,9 @@ import (
 	"os"
 	"time"
 
-	demov1 "demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go/bufstream/demo/v1"
+	logsv1 "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go/opentelemetry/proto/logs/v1"
 	"github.com/bufbuild/bsr-kafka-serde-go/confluent"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/google/uuid"
 )
 
 func main() {
@@ -47,8 +46,8 @@ func run(ctx context.Context) error {
 			NumPartitions:     1,
 			ReplicationFactor: 1,
 			Config: map[string]string{
-				"buf.registry.value.schema.module":  "demo.buf.dev/bufbuild/bufstream-demo",
-				"buf.registry.value.schema.message": "bufstream.demo.v1.EmailUpdated",
+				"buf.registry.value.schema.module":  "buf.build/opentelemetry/opentelemetry",
+				"buf.registry.value.schema.message": "opentelemetry.proto.logs.v1.LogRecord",
 				"bufstream.validate.mode":           "reject",
 			},
 		},
@@ -74,14 +73,13 @@ func run(ctx context.Context) error {
 	}
 	defer consumer.Close()
 
-	serde := confluent.New("demo.buf.dev")
-	message, err := serde.Serialize(ctx, &demov1.EmailUpdated{
-		Id:              uuid.New().String(),
-		OldEmailAddress: "test@example.com",
-		NewEmailAddress: "new@example.com",
+	serde := confluent.New("buf.build")
+	message, err := serde.Serialize(ctx, &logsv1.LogRecord{
+		SeverityText: "INFO",
+		EventName:    "demo",
 	})
 	if err != nil {
-		return fmt.Errorf("serializing email updated: %w", err)
+		return fmt.Errorf("serializing log record: %w", err)
 	}
 	message.TopicPartition.Topic = &topic
 
@@ -97,11 +95,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("reading message: %w", err)
 	}
-	emailUpdated, err := serde.Deserialize(ctx, receivedMessage)
+	logRecord, err := serde.Deserialize(ctx, receivedMessage)
 	if err != nil {
 		return fmt.Errorf("deserializing payload: %w", err)
 	}
-	fmt.Printf("Consumed value: %+v\n", emailUpdated)
+	fmt.Printf("Consumed value: %+v\n", logRecord)
 
 	return nil
 }

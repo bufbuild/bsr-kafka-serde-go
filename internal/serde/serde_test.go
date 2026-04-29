@@ -135,9 +135,9 @@ func TestParseGenSDKModulePath(t *testing.T) {
 			wantOK:     true,
 		},
 		{
-			modulePath: "demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go",
-			wantOwner:  "bufbuild",
-			wantModule: "bufstream-demo",
+			modulePath: "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go",
+			wantOwner:  "opentelemetry",
+			wantModule: "opentelemetry",
 			wantOK:     true,
 		},
 		{

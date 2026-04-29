@@ -17,7 +17,7 @@ package main
 import (
 	"testing"
 
-	demov1 "demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go/bufstream/demo/v1"
+	logsv1 "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go/opentelemetry/proto/logs/v1"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
 	"github.com/bufbuild/bsr-kafka-serde-go/franz"
 	"github.com/stretchr/testify/assert"
@@ -27,10 +27,10 @@ import (
 
 func TestFranzSerializeSDKCommitHeader(t *testing.T) {
 	t.Parallel()
-	// demov1.EmailUpdated is from a BSR-generated SDK module; the full commit ID should be set.
+	// logsv1.LogRecord is from a BSR-generated SDK module; the full commit ID should be set.
 	// This test runs in a package main binary, so buildDeps is populated.
-	franzSerde := franz.New("demo.buf.dev")
-	record, err := franzSerde.Serialize(t.Context(), &demov1.EmailUpdated{})
+	franzSerde := franz.New("buf.build")
+	record, err := franzSerde.Serialize(t.Context(), &logsv1.LogRecord{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
 }
@@ -38,8 +38,8 @@ func TestFranzSerializeSDKCommitHeader(t *testing.T) {
 func TestFranzWithoutCommitResolution(t *testing.T) {
 	t.Parallel()
 	// WithoutCommitResolution should suppress the commit header even for BSR-generated SDK types.
-	franzSerde := franz.New("demo.buf.dev", serde.WithoutCommitResolution())
-	record, err := franzSerde.Serialize(t.Context(), &demov1.EmailUpdated{})
+	franzSerde := franz.New("buf.build", serde.WithoutCommitResolution())
+	record, err := franzSerde.Serialize(t.Context(), &logsv1.LogRecord{})
 	require.NoError(t, err)
 	assert.Empty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaCommit))
 	assert.NotEmpty(t, findHeader(record.Headers, serde.BufRegistryValueSchemaMessage))

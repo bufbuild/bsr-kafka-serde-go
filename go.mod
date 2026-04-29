@@ -6,11 +6,10 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.2-20260126144947-819582968857.1
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260126144947-819582968857.1
+	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1
 	connectrpc.com/connect v1.19.2
-	demo.buf.dev/gen/go/bufbuild/bufstream-demo/protocolbuffers/go v1.36.11-20250429161923-5c792fd712d4.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
 	github.com/google/go-cmp v0.7.0
-	github.com/google/uuid v1.6.0
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/twmb/franz-go v1.21.0
@@ -20,7 +19,6 @@ require (
 )
 
 require (
-	demo.buf.dev/gen/go/bufbuild/confluent/protocolbuffers/go v1.36.11-20241001224917-12f52fdd8338.1 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
