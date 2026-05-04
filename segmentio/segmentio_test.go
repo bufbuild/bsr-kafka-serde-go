@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package confluent_test
+package segmentio_test
 
 import (
 	"crypto/rand"
@@ -21,17 +21,17 @@ import (
 
 	modulev1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
-	"github.com/bufbuild/bsr-kafka-serde-go/confluent"
 	"github.com/bufbuild/bsr-kafka-serde-go/internal/serdetest"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/bufbuild/bsr-kafka-serde-go/segmentio"
 	"github.com/google/go-cmp/cmp"
+	kafka "github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestConfluent(t *testing.T) {
+func TestSegmentio(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	commitID := rand.Text()
@@ -39,14 +39,14 @@ func TestConfluent(t *testing.T) {
 	server := serdetest.NewServer(t, handler)
 	serverURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
-	confluentSerde := confluent.New(
+	segmentioSerde := segmentio.New(
 		serverURL.Host,
 		serde.WithHTTPClient(server.Client()),
 	)
 	commit := &modulev1.Commit{
 		Id: commitID,
 	}
-	message, err := confluentSerde.Serialize(ctx, commit)
+	message, err := segmentioSerde.Serialize(ctx, commit)
 	require.NoError(t, err)
 	// Serialize stamps the message header.
 	assert.Equal(t, string(commit.ProtoReflect().Descriptor().FullName()), findHeader(message.Headers, serde.BufRegistryValueSchemaMessage))
@@ -60,27 +60,27 @@ func TestConfluent(t *testing.T) {
 	)
 
 	newCommit := &modulev1.Commit{}
-	require.NoError(t, confluentSerde.DeserializeTo(message, newCommit))
+	require.NoError(t, segmentioSerde.DeserializeTo(message, newCommit))
 
 	assert.Empty(t, cmp.Diff(commit, newCommit, protocmp.Transform()))
 
 	// If we _didn't_ know the type, we can hit the FDS service and deserialize that way.
-	dynamicMessage, err := confluentSerde.Deserialize(ctx, message)
+	dynamicMessage, err := segmentioSerde.Deserialize(ctx, message)
 	require.NoError(t, err)
 
 	assert.Empty(t, cmp.Diff(commit, dynamicMessage, protocmp.Transform()))
 }
 
-func TestConfluentSerializeSDKCommitHeader(t *testing.T) {
+func TestSegmentioSerializeSDKCommitHeader(t *testing.T) {
 	t.Parallel()
 	// timestamppb.Timestamp is from google.golang.org/protobuf, which uses regular semver with
 	// no BSR commit embedded. Serialize will not make any BSR calls and must not add the SDK
 	// commit header, so no server is needed.
-	confluentSerde := confluent.New("test.example.com")
+	segmentioSerde := segmentio.New("test.example.com")
 	// The positive case (gen SDK types producing a non-empty commit) is exercised by
-	// TestConfluentSerializeSDKCommitHeader in confluent/example.
+	// TestSegmentioSerializeSDKCommitHeader in segmentio/example.
 	ts := &timestamppb.Timestamp{}
-	msg, err := confluentSerde.Serialize(t.Context(), ts)
+	msg, err := segmentioSerde.Serialize(t.Context(), ts)
 	require.NoError(t, err)
 	assert.Empty(t, findHeader(msg.Headers, serde.BufRegistryValueSchemaCommit))
 	assert.Equal(t, string(ts.ProtoReflect().Descriptor().FullName()), findHeader(msg.Headers, serde.BufRegistryValueSchemaMessage))

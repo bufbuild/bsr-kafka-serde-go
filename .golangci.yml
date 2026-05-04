@@ -67,6 +67,10 @@ linters:
           - forbidigo
         path: confluent/example/main.go
         text: fmt.Printf
+      - linters:
+          - forbidigo
+        path: segmentio/example/main.go
+        text: fmt.Printf
 
 formatters:
   enable:
