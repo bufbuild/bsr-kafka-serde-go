@@ -21,8 +21,8 @@ It uses the following Kafka record headers to serialize and deserialize record v
 
 ## Usage
 
-`bsr-kafka-serde-go` currently supports [`confluent-kafka-go/v2`][confluent-kafka-go/v2] and [`franz-go`][franz-go],
-found in the [`confluent`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/confluent) and [`franz`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/franz) packages, respectively.
+`bsr-kafka-serde-go` currently supports [`confluent-kafka-go/v2`][confluent-kafka-go/v2], [`franz-go`][franz-go], and [`kafka-go`][kafka-go],
+found in the [`confluent`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/confluent), [`franz`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/franz), and [`segmentio`](https://pkg.go.dev/github.com/bufbuild/bsr-kafka-serde-go/segmentio) packages, respectively.
 
 ```console
 $ go get github.com/bufbuild/bsr-kafka-serde-go
@@ -37,6 +37,10 @@ See [confluent/example/main.go](./confluent/example/main.go).
 ### franz-go
 
 See [franz/example/main.go](./franz/example/main.go).
+
+### kafka-go
+
+See [segmentio/example/main.go](./segmentio/example/main.go).
 
 ## Status: Beta
 
@@ -53,3 +57,4 @@ Offered under the [Apache 2 license][license].
 [license]: https://github.com/bufbuild/bsr-kafka-serde-go/blob/main/LICENSE
 [confluent-kafka-go/v2]: https://pkg.go.dev/github.com/confluentinc/confluent-kafka-go/v2
 [franz-go]: https://pkg.go.dev/github.com/twmb/franz-go/pkg/kgo
+[kafka-go]: https://pkg.go.dev/github.com/segmentio/kafka-go
