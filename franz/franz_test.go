@@ -15,28 +15,19 @@
 package franz_test
 
 import (
-	"context"
 	"crypto/rand"
-	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	"buf.build/gen/go/bufbuild/registry/connectrpc/gosimple/buf/registry/module/v1/modulev1connect"
 	modulev1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
-	extensionv1beta1 "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/priv/extension/v1beta1"
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
 	"github.com/bufbuild/bsr-kafka-serde-go/franz"
+	"github.com/bufbuild/bsr-kafka-serde-go/internal/serdetest"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/testing/protocmp"
-	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -44,8 +35,8 @@ func TestFranz(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	commitID := rand.Text()
-	handler := &fdsHandler{commitID: commitID}
-	server := newServer(t, handler)
+	handler := &serdetest.FDSHandler{CommitID: commitID}
+	server := serdetest.NewServer(t, handler)
 	serverURL, err := url.Parse(server.URL)
 	require.NoError(t, err)
 	franzSerde := franz.New(
@@ -102,44 +93,4 @@ func findHeader(headers []kgo.RecordHeader, key string) string {
 		}
 	}
 	return ""
-}
-
-type fdsHandler struct {
-	modulev1connect.UnimplementedCommitServiceHandler
-
-	commitID string
-}
-
-func (h *fdsHandler) GetFileDescriptorSet(_ context.Context, _ *modulev1.GetFileDescriptorSetRequest) (*modulev1.GetFileDescriptorSetResponse, error) {
-	return &modulev1.GetFileDescriptorSetResponse{
-		FileDescriptorSet: &descriptorpb.FileDescriptorSet{
-			File: []*descriptorpb.FileDescriptorProto{
-				protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_commit_proto),
-				protodesc.ToFileDescriptorProto(modulev1.File_buf_registry_module_v1_digest_proto),
-				protodesc.ToFileDescriptorProto(extensionv1beta1.File_buf_registry_priv_extension_v1beta1_extension_proto),
-				protodesc.ToFileDescriptorProto(validate.File_buf_validate_validate_proto),
-				protodesc.ToFileDescriptorProto(descriptorpb.File_google_protobuf_descriptor_proto),
-				protodesc.ToFileDescriptorProto(durationpb.File_google_protobuf_duration_proto),
-				protodesc.ToFileDescriptorProto(timestamppb.File_google_protobuf_timestamp_proto),
-				protodesc.ToFileDescriptorProto(fieldmaskpb.File_google_protobuf_field_mask_proto),
-			},
-		},
-		Commit: &modulev1.Commit{
-			Id: h.commitID,
-		},
-	}, nil
-}
-
-func (h *fdsHandler) ListCommits(_ context.Context, _ *modulev1.ListCommitsRequest) (*modulev1.ListCommitsResponse, error) {
-	return &modulev1.ListCommitsResponse{
-		Commits: []*modulev1.Commit{{Id: h.commitID}},
-	}, nil
-}
-
-func newServer(t *testing.T, svc *fdsHandler) *httptest.Server {
-	t.Helper()
-	mux := http.NewServeMux()
-	mux.Handle(modulev1connect.NewFileDescriptorSetServiceHandler(svc))
-	mux.Handle(modulev1connect.NewCommitServiceHandler(svc))
-	return httptest.NewTLSServer(mux)
 }

@@ -10,6 +10,7 @@ require (
 	connectrpc.com/connect v1.19.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.14.1
 	github.com/google/go-cmp v0.7.0
+	github.com/segmentio/kafka-go v0.4.51
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/twmb/franz-go v1.21.0
