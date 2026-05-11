@@ -17,6 +17,7 @@ package serde
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -76,69 +77,95 @@ func TestExtractCommitFromPseudoVersion(t *testing.T) {
 	}
 }
 
-func TestFindDepForPkgPath(t *testing.T) {
+func TestCollectGenSDKDeps(t *testing.T) {
 	t.Parallel()
-	registryDep := &debug.Module{
-		Path:    "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
-		Version: "v1.36.11-20260126144947-819582968857.1",
+	modules := []*debug.Module{
+		{
+			Path:    "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			Version: "v1.36.11-20260126144947-819582968857.1",
+		},
+		{
+			Path:    "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+			Version: "v1.36.11-20260209202127-80ab13bee0bf.1",
+		},
+		{
+			Path:    "google.golang.org/protobuf",
+			Version: "v1.36.11",
+		},
 	}
-	protovalidateDep := &debug.Module{
-		Path:    "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
-		Version: "v1.36.11-20260209202127-80ab13bee0bf.1",
-	}
-	googleDep := &debug.Module{
-		Path:    "google.golang.org/protobuf",
-		Version: "v1.36.11",
-	}
-	deps := []*debug.Module{registryDep, protovalidateDep, googleDep}
+	deps := collectGenSDKDeps(modules)
+	// Non-gen-SDK deps (google.golang.org/protobuf) are filtered out.
+	require.Len(t, deps, 2)
+	assert.Equal(t, "buf.build/gen/go/bufbuild/registry/protocolbuffers/go", deps[0].pkgPathPrefix)
+	assert.Equal(t, "buf.build/bufbuild/registry", deps[0].moduleFullName)
+	assert.Equal(t, "bufbuild", deps[0].owner)
+	assert.Equal(t, "registry", deps[0].module)
+	assert.Equal(t, "819582968857", deps[0].shortCommit)
+}
 
-	t.Run("generated SDK module matches longest prefix", func(t *testing.T) {
+func TestFindGenSDKDep(t *testing.T) {
+	t.Parallel()
+	registryDep := newGenSDKDep(t,
+		"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+		"v1.36.11-20260126144947-819582968857.1",
+	)
+	protovalidateDep := newGenSDKDep(t,
+		"buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go",
+		"v1.36.11-20260209202127-80ab13bee0bf.1",
+	)
+	deps := []genSDKDep{registryDep, protovalidateDep}
+
+	t.Run("matches longest prefix", func(t *testing.T) {
 		t.Parallel()
 		// Package path is deeper than the module path; the module is the longest prefix.
 		pkgPath := "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
-		dep := findDepForPkgPath(pkgPath, deps)
-		require.NotNil(t, dep)
-		assert.Equal(t, "819582968857", extractCommitFromPseudoVersion(dep.Version))
+		dep, ok := findGenSDKDep(pkgPath, deps)
+		require.True(t, ok)
+		assert.Equal(t, registryDep, dep)
 	})
-	t.Run("local type with regular semver returns no commit", func(t *testing.T) {
+	t.Run("no matching dep returns false", func(t *testing.T) {
 		t.Parallel()
-		// google.golang.org/protobuf uses regular semver; no commit can be extracted.
 		pkgPath := "google.golang.org/protobuf/types/known/timestamppb"
-		dep := findDepForPkgPath(pkgPath, deps)
-		require.NotNil(t, dep)
-		assert.Empty(t, extractCommitFromPseudoVersion(dep.Version))
+		_, ok := findGenSDKDep(pkgPath, deps)
+		assert.False(t, ok)
 	})
-	t.Run("no matching dep returns nil", func(t *testing.T) {
-		t.Parallel()
-		pkgPath := "example.com/some/local/package"
-		assert.Nil(t, findDepForPkgPath(pkgPath, deps))
-	})
-	t.Run("empty dep list returns nil", func(t *testing.T) {
+	t.Run("empty dep list returns false", func(t *testing.T) {
 		t.Parallel()
 		pkgPath := "buf.build/gen/go/bufbuild/registry/protocolbuffers/go/buf/registry/module/v1"
-		assert.Nil(t, findDepForPkgPath(pkgPath, nil))
+		_, ok := findGenSDKDep(pkgPath, nil)
+		assert.False(t, ok)
 	})
 }
 
 func TestParseGenSDKModulePath(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		modulePath string
-		wantOwner  string
-		wantModule string
-		wantOK     bool
+		modulePath   string
+		wantRegistry string
+		wantOwner    string
+		wantModule   string
+		wantOK       bool
 	}{
 		{
-			modulePath: "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
-			wantOwner:  "bufbuild",
-			wantModule: "registry",
-			wantOK:     true,
+			modulePath:   "buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			wantRegistry: "buf.build",
+			wantOwner:    "bufbuild",
+			wantModule:   "registry",
+			wantOK:       true,
 		},
 		{
-			modulePath: "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go",
-			wantOwner:  "opentelemetry",
-			wantModule: "opentelemetry",
-			wantOK:     true,
+			modulePath:   "buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go",
+			wantRegistry: "buf.build",
+			wantOwner:    "opentelemetry",
+			wantModule:   "opentelemetry",
+			wantOK:       true,
+		},
+		{
+			modulePath:   "registry.example.com/gen/go/myorg/mymodule/protocolbuffers/go",
+			wantRegistry: "registry.example.com",
+			wantOwner:    "myorg",
+			wantModule:   "mymodule",
+			wantOK:       true,
 		},
 		{
 			modulePath: "google.golang.org/protobuf",
@@ -152,8 +179,9 @@ func TestParseGenSDKModulePath(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.modulePath, func(t *testing.T) {
 			t.Parallel()
-			owner, module, ok := parseGenSDKModulePath(testCase.modulePath)
+			registry, owner, module, ok := parseGenSDKModulePath(testCase.modulePath)
 			assert.Equal(t, testCase.wantOK, ok)
+			assert.Equal(t, testCase.wantRegistry, registry)
 			assert.Equal(t, testCase.wantOwner, owner)
 			assert.Equal(t, testCase.wantModule, module)
 		})
@@ -197,7 +225,7 @@ func TestParsePseudoVersionTimestamp(t *testing.T) {
 func TestSerde(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	commitID := rand.Text()
+	commitID := newCommitID()
 	handler := &fdsHandler{commitID: commitID}
 	server := newServer(t, handler)
 	serverURL, err := url.Parse(server.URL)
@@ -333,22 +361,147 @@ func TestGenSDKCommitFromMessage(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, fakeCommit, commit)
 	})
+	t.Run("resolver returns commit for gen-SDK type", func(t *testing.T) {
+		t.Parallel()
+		want := newCommitID()
+		var (
+			gotModuleFullName string
+			callCount         int
+		)
+		resolver := func(_ context.Context, _ proto.Message, moduleFullName string) (string, error) {
+			gotModuleFullName = moduleFullName
+			callCount++
+			return want, nil
+		}
+		serdeInstance := New("buf.build", serde.WithCommitResolver(resolver))
+		serdeInstance.genSDKDeps = []genSDKDep{newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)}
+		msg := &modulev1.Commit{}
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, msg)
+		require.NoError(t, err)
+		assert.Equal(t, want, commit)
+		assert.Equal(t, "buf.build/bufbuild/registry", gotModuleFullName)
+		assert.Equal(t, 1, callCount)
+		// Second call should hit the type cache and not invoke the resolver again.
+		commit, err = serdeInstance.GenSDKCommitFromMessage(ctx, msg)
+		require.NoError(t, err)
+		assert.Equal(t, want, commit)
+		assert.Equal(t, 1, callCount)
+	})
+	t.Run("resolver called for non-gen-SDK type with empty module full name", func(t *testing.T) {
+		t.Parallel()
+		want := newCommitID()
+		var gotModuleFullName string
+		resolver := func(_ context.Context, _ proto.Message, moduleFullName string) (string, error) {
+			gotModuleFullName = moduleFullName
+			return want, nil
+		}
+		serdeInstance := New("buf.build", serde.WithCommitResolver(resolver))
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &timestamppb.Timestamp{})
+		require.NoError(t, err)
+		assert.Equal(t, want, commit)
+		assert.Empty(t, gotModuleFullName)
+	})
+	t.Run("resolver error propagates and is not cached", func(t *testing.T) {
+		t.Parallel()
+		wantErr := errors.New("resolver failure")
+		var callCount int
+		resolver := func(_ context.Context, _ proto.Message, _ string) (string, error) {
+			callCount++
+			return "", wantErr
+		}
+		serdeInstance := New("buf.build", serde.WithCommitResolver(resolver))
+		_, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.ErrorIs(t, err, wantErr)
+		// Second call should re-invoke the resolver, since errors are not cached.
+		_, err = serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.ErrorIs(t, err, wantErr)
+		assert.Equal(t, 2, callCount)
+	})
+	t.Run("resolver empty result is cached", func(t *testing.T) {
+		t.Parallel()
+		var callCount int
+		resolver := func(_ context.Context, _ proto.Message, _ string) (string, error) {
+			callCount++
+			return "", nil
+		}
+		serdeInstance := New("buf.build", serde.WithCommitResolver(resolver))
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+		commit, err = serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+		assert.Equal(t, 1, callCount)
+	})
+	t.Run("WithoutCommitResolution wins over WithCommitResolver", func(t *testing.T) {
+		t.Parallel()
+		var called bool
+		resolver := func(_ context.Context, _ proto.Message, _ string) (string, error) {
+			called = true
+			return newCommitID(), nil
+		}
+		serdeInstance := New("buf.build",
+			serde.WithCommitResolver(resolver),
+			serde.WithoutCommitResolution(),
+		)
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+		assert.False(t, called)
+	})
+	t.Run("WithStaticModuleCommits returns mapped commit", func(t *testing.T) {
+		t.Parallel()
+		want := newCommitID()
+		serdeInstance := New("buf.build", serde.WithStaticModuleCommits(map[string]string{
+			"buf.build/bufbuild/registry": want,
+		}))
+		serdeInstance.genSDKDeps = []genSDKDep{newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)}
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Equal(t, want, commit)
+	})
+	t.Run("WithStaticModuleCommits missing key returns empty", func(t *testing.T) {
+		t.Parallel()
+		serdeInstance := New("buf.build", serde.WithStaticModuleCommits(map[string]string{
+			"buf.build/opentelemetry/opentelemetry": newCommitID(),
+		}))
+		serdeInstance.genSDKDeps = []genSDKDep{newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)}
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Empty(t, commit)
+	})
+	t.Run("WithStaticModuleCommits clones map", func(t *testing.T) {
+		t.Parallel()
+		want := newCommitID()
+		commits := map[string]string{"buf.build/bufbuild/registry": want}
+		serdeInstance := New("buf.build", serde.WithStaticModuleCommits(commits))
+		serdeInstance.genSDKDeps = []genSDKDep{newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)}
+		// Mutating the map after construction must not affect the option.
+		clear(commits)
+		commit, err := serdeInstance.GenSDKCommitFromMessage(ctx, &modulev1.Commit{})
+		require.NoError(t, err)
+		assert.Equal(t, want, commit)
+	})
 }
 
 func TestResolveCommit(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	// depVersion and its embedded timestamp, used for multi-result disambiguation.
-	const (
-		depPath     = "buf.build/gen/go/bufbuild/registry/protocolbuffers/go"
-		depVersion  = "v1.36.11-20260126144947-819582968857.1"
-		shortCommit = "819582968857"
-	)
-	// ts is the timestamp embedded in depVersion.
+	// ts is the timestamp embedded in the dep version below, used for multi-result disambiguation.
 	ts, err := time.Parse("20060102150405", "20260126144947")
 	require.NoError(t, err)
-	// newTestSerde creates a fresh Serde backed by a new server+handler, giving each sub-test
-	// an isolated cache and call counter.
 	newTestSerde := func(commitID string) (*Serde, *commitHandler) {
 		handler := &commitHandler{commitID: commitID, ts: ts}
 		server := newCommitServer(t, handler)
@@ -356,41 +509,59 @@ func TestResolveCommit(t *testing.T) {
 		require.NoError(t, err)
 		return New(serverURL.Host, serde.WithHTTPClient(server.Client())), handler
 	}
+	// newDep returns a fresh dep with shortCommit overridden so each sub-test can steer the
+	// handler to a specific response branch via the IdQuery.
+	newDep := func(shortCommit string) genSDKDep {
+		dep := newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)
+		dep.shortCommit = shortCommit
+		return dep
+	}
 
 	t.Run("single result", func(t *testing.T) {
 		t.Parallel()
-		commitID := rand.Text()
+		commitID := newCommitID()
 		s, _ := newTestSerde(commitID)
-		commit, err := s.resolveCommit(ctx, depPath, depVersion, shortCommit)
+		dep := newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)
+		commit, err := s.resolveCommit(ctx, dep)
 		require.NoError(t, err)
 		assert.Equal(t, commitID, commit)
 	})
 	t.Run("multiple results match timestamp", func(t *testing.T) {
 		t.Parallel()
-		commitID := rand.Text()
+		commitID := newCommitID()
 		s, _ := newTestSerde(commitID)
-		commit, err := s.resolveCommit(ctx, depPath, depVersion, "multi")
+		commit, err := s.resolveCommit(ctx, newDep("multi"))
 		require.NoError(t, err)
 		assert.Equal(t, commitID, commit)
 	})
 	t.Run("multiple results no timestamp match", func(t *testing.T) {
 		t.Parallel()
-		s, _ := newTestSerde(rand.Text())
-		_, err := s.resolveCommit(ctx, depPath, depVersion, "nomatch")
+		s, _ := newTestSerde(newCommitID())
+		_, err := s.resolveCommit(ctx, newDep("nomatch"))
 		require.Error(t, err)
 	})
 	t.Run("no results", func(t *testing.T) {
 		t.Parallel()
-		s, _ := newTestSerde(rand.Text())
-		_, err := s.resolveCommit(ctx, depPath, depVersion, "empty")
+		s, _ := newTestSerde(newCommitID())
+		_, err := s.resolveCommit(ctx, newDep("empty"))
 		require.Error(t, err)
 	})
 	t.Run("cached", func(t *testing.T) {
 		t.Parallel()
-		commitID := rand.Text()
+		commitID := newCommitID()
 		s, handler := newTestSerde(commitID)
+		dep := newGenSDKDep(t,
+			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
+			"v1.36.11-20260126144947-819582968857.1",
+		)
 		for range 3 {
-			commit, err := s.resolveCommit(ctx, depPath, depVersion, shortCommit)
+			commit, err := s.resolveCommit(ctx, dep)
 			require.NoError(t, err)
 			assert.Equal(t, commitID, commit)
 		}
@@ -399,9 +570,9 @@ func TestResolveCommit(t *testing.T) {
 	})
 	t.Run("retries", func(t *testing.T) {
 		t.Parallel()
-		commitID := rand.Text()
+		commitID := newCommitID()
 		s, handler := newTestSerde(commitID)
-		commit, err := s.resolveCommit(ctx, depPath, depVersion, "retry")
+		commit, err := s.resolveCommit(ctx, newDep("retry"))
 		require.NoError(t, err)
 		assert.Equal(t, commitID, commit)
 		// Should have hit the handler three times; first two were retried transparently.
@@ -454,6 +625,22 @@ func (h *commitHandler) ListCommits(_ context.Context, req *modulev1.ListCommits
 			Commits: []*modulev1.Commit{{Id: h.commitID}},
 		}, nil
 	}
+}
+
+// newCommitID returns a random 32-char hex identifier matching the BSR commit ID format.
+func newCommitID() string {
+	buf := make([]byte, 16)
+	_, _ = rand.Read(buf)
+	return hex.EncodeToString(buf)
+}
+
+// newGenSDKDep builds a genSDKDep from a Go module path and pseudo-version, deriving
+// the registry/owner/module/short-commit fields via the production parsing helpers.
+func newGenSDKDep(t *testing.T, path, version string) genSDKDep {
+	t.Helper()
+	deps := collectGenSDKDeps([]*debug.Module{{Path: path, Version: version}})
+	require.Len(t, deps, 1)
+	return deps[0]
 }
 
 func newServer(t *testing.T, svc modulev1connect.FileDescriptorSetServiceHandler) *httptest.Server {

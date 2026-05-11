@@ -23,7 +23,7 @@ import (
 
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
 	internalserde "github.com/bufbuild/bsr-kafka-serde-go/internal/serde"
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 )
 

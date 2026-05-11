@@ -15,7 +15,11 @@
 package serde
 
 import (
+	"context"
+	"maps"
+
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 )
 
 // Option modifies a Serde instance.
@@ -23,10 +27,20 @@ type Option interface {
 	ApplyToSerde(cfg *Config)
 }
 
+// CommitResolver returns the BSR commit ID for src. moduleFullName has the form
+// "registry/owner/name" (e.g. "buf.build/opentelemetry/opentelemetry") when src is
+// from a BSR-generated SDK module, and is empty otherwise. Returning "" with a nil
+// error skips the [BufRegistryValueSchemaCommit] header.
+//
+// Resolvers must be safe for concurrent use. Results are cached per Go message type
+// for the lifetime of the Serde instance.
+type CommitResolver func(ctx context.Context, src proto.Message, moduleFullName string) (string, error)
+
 type Config struct {
 	HTTPClient           connect.HTTPClient
 	Token                string
 	SkipCommitResolution bool
+	CommitResolver       CommitResolver
 }
 
 // WithHTTPClient allows swapping out the http client used for interacting with the BSR.
@@ -52,6 +66,25 @@ func WithoutCommitResolution() Option {
 	return &withoutCommitResolutionOption{}
 }
 
+// WithCommitResolver replaces the default BSR commit resolution with the given
+// [CommitResolver], avoiding the runtime BSR API call. [WithoutCommitResolution]
+// takes precedence: if both are set, resolver is not called.
+func WithCommitResolver(resolver CommitResolver) Option {
+	return &commitResolverOption{
+		resolver: resolver,
+	}
+}
+
+// WithStaticModuleCommits returns commit IDs from a static map keyed by module full name
+// (e.g. "buf.build/opentelemetry/opentelemetry"). Messages whose module full name is not
+// in the map will not have the [BufRegistryValueSchemaCommit] header set.
+func WithStaticModuleCommits(commits map[string]string) Option {
+	cloned := maps.Clone(commits)
+	return WithCommitResolver(func(_ context.Context, _ proto.Message, moduleFullName string) (string, error) {
+		return cloned[moduleFullName], nil
+	})
+}
+
 type httpClientOption struct {
 	httpClient connect.HTTPClient
 }
@@ -72,4 +105,12 @@ type withoutCommitResolutionOption struct{}
 
 func (o *withoutCommitResolutionOption) ApplyToSerde(cfg *Config) {
 	cfg.SkipCommitResolution = true
+}
+
+type commitResolverOption struct {
+	resolver CommitResolver
+}
+
+func (o *commitResolverOption) ApplyToSerde(cfg *Config) {
+	cfg.CommitResolver = o.resolver
 }
