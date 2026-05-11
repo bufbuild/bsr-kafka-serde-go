@@ -405,7 +405,7 @@ type genSDKDep struct {
 }
 
 func collectGenSDKDeps(modules []*debug.Module) []genSDKDep {
-	var deps []genSDKDep
+	deps := make([]genSDKDep, 0, len(modules))
 	for _, module := range modules {
 		registry, owner, name, ok := parseGenSDKModulePath(module.Path)
 		if !ok {

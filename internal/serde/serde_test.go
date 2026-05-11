@@ -555,13 +555,13 @@ func TestResolveCommit(t *testing.T) {
 	t.Run("cached", func(t *testing.T) {
 		t.Parallel()
 		commitID := newCommitID()
-		s, handler := newTestSerde(commitID)
+		serdeInstance, handler := newTestSerde(commitID)
 		dep := newGenSDKDep(t,
 			"buf.build/gen/go/bufbuild/registry/protocolbuffers/go",
 			"v1.36.11-20260126144947-819582968857.1",
 		)
 		for range 3 {
-			commit, err := s.resolveCommit(ctx, dep)
+			commit, err := serdeInstance.resolveCommit(ctx, dep)
 			require.NoError(t, err)
 			assert.Equal(t, commitID, commit)
 		}
