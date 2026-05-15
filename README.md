@@ -14,9 +14,9 @@ It uses the following Kafka record headers to serialize and deserialize record v
   The serializer always sets this header from the message descriptor.
   Bufstream also sets this header when configured to use [semantic validation][bufstream-semantic-validation].
 * `buf.registry.value.schema.commit` - The BSR commit ID for the Protobuf message's schema.
-  The serializer sets this automatically by resolving the generated SDK module's pseudo-version against the BSR API.
-  A failed BSR lookup will cause `Serialize` to return an error.
-  Pass `WithoutCommitResolution()` to opt out and let Bufstream set the header instead.
+  By default, the serializer resolves the generated SDK module's pseudo-version against the BSR API.
+* A failed lookup causes `Serialize` to return an error.
+  To bypass the BSR commit resolver, pass `WithCommitResolver` to supply commit IDs from another source or use the convenience `WithStaticModuleCommits` option.
   Bufstream also sets this header when configured to use [semantic validation][bufstream-semantic-validation].
 
 ## Usage

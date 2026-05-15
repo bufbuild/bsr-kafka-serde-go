@@ -41,15 +41,6 @@ import (
 
 const negativeCacheExpiry = 1 * time.Minute
 
-// buildDeps is the list of module dependencies from the build info, read once.
-var buildDeps = sync.OnceValue(func() []*debug.Module { //nolint:gochecknoglobals // read-only after first call via sync.OnceValue
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return nil
-	}
-	return info.Deps
-})
-
 // New creates a new [Serde].
 func New(host string, options ...serde.Option) *Serde {
 	cfg := serde.Config{
@@ -66,11 +57,13 @@ func New(host string, options ...serde.Option) *Serde {
 	}
 	baseURL := "https://" + host
 	return &Serde{
+		genSDKDeps:           collectGenSDKDeps(buildDeps()),
 		cache:                map[cacheKey]cacheValue{},
 		sfGroup:              &singleflight.Group{},
 		typeCommits:          map[reflect.Type]string{},
 		resolvedCommits:      map[string]string{},
 		skipCommitResolution: cfg.SkipCommitResolution,
+		commitResolver:       cfg.CommitResolver,
 		fileDescriptorSetClient: modulev1connect.NewFileDescriptorSetServiceClient(
 			cfg.HTTPClient,
 			baseURL,
@@ -88,6 +81,9 @@ func New(host string, options ...serde.Option) *Serde {
 // Serde looks up FileDescriptorSets from a Buf Schema Registry, and caches lookups for
 // [Serde.Deserialize] to use.
 type Serde struct {
+	// genSDKDeps may be overridden in tests within this package.
+	genSDKDeps []genSDKDep
+
 	mu    sync.RWMutex
 	cache map[cacheKey]cacheValue
 
@@ -107,6 +103,7 @@ type Serde struct {
 	commitClient         modulev1connect.CommitServiceClient
 	commitSFGroup        *singleflight.Group
 	skipCommitResolution bool
+	commitResolver       serde.CommitResolver
 }
 
 // Deserialize deserializes the value into a [proto.Message], based on the commit and messageFQN.
@@ -223,10 +220,10 @@ func (s *Serde) Deserialize(ctx context.Context, value []byte, commit, messageFQ
 	return msg, nil
 }
 
-// GenSDKCommitFromMessage returns the full BSR commit ID of the generated SDK module containing
-// the given [proto.Message] type. It extracts the short commit from the module's pseudo-version in
-// the build info, then resolves it to the full commit ID via the BSR API.
-// Returns an empty string and no error if the type is not from a BSR-generated SDK module.
+// GenSDKCommitFromMessage returns the full BSR commit ID for the given [proto.Message],
+// either by calling a configured [serde.CommitResolver] or by resolving the short commit
+// from the build info pseudo-version against the BSR API. Returns an empty string and no
+// error if no commit can be determined for the message.
 func (s *Serde) GenSDKCommitFromMessage(ctx context.Context, src proto.Message) (string, error) {
 	if s.skipCommitResolution {
 		return "", nil
@@ -235,39 +232,50 @@ func (s *Serde) GenSDKCommitFromMessage(ctx context.Context, src proto.Message) 
 	if msgType.Kind() == reflect.Pointer {
 		msgType = msgType.Elem()
 	}
-	// Check the per-type cache first to avoid repeated reflection and dep-scanning.
 	s.typeCommitsMutex.RLock()
 	cached, ok := s.typeCommits[msgType]
 	s.typeCommitsMutex.RUnlock()
 	if ok {
 		return cached, nil
 	}
-	dep := findDepForPkgPath(msgType.PkgPath(), buildDeps())
-	if dep == nil {
-		// Not a BSR-generated SDK module; cache the negative result.
+	dep, hasDep := findGenSDKDep(msgType.PkgPath(), s.genSDKDeps)
+	var moduleFullName string
+	if hasDep {
+		moduleFullName = dep.moduleFullName
+	}
+	if s.commitResolver != nil {
+		// Errors are not cached so a transient resolver failure can be retried by the next call.
+		commit, err := s.commitResolver(ctx, src, moduleFullName)
+		if err != nil {
+			return "", err
+		}
+		s.typeCommitsMutex.Lock()
+		s.typeCommits[msgType] = commit
+		s.typeCommitsMutex.Unlock()
+		return commit, nil
+	}
+	if !hasDep {
 		s.typeCommitsMutex.Lock()
 		s.typeCommits[msgType] = ""
 		s.typeCommitsMutex.Unlock()
 		return "", nil
 	}
-	shortCommit := extractCommitFromPseudoVersion(dep.Version)
-	if shortCommit == "" {
-		// No pseudo-version short commit; cache the negative result.
-		s.typeCommitsMutex.Lock()
-		s.typeCommits[msgType] = ""
-		s.typeCommitsMutex.Unlock()
-		return "", nil
-	}
-	commit, err := s.resolveCommit(ctx, dep.Path, dep.Version, shortCommit)
+	commit, err := s.resolveCommit(ctx, dep)
 	if err != nil {
-		// Do not cache errors; let the next call retry the BSR lookup.
 		return "", err
 	}
-	// Cache the resolved commit ID for this type.
 	s.typeCommitsMutex.Lock()
 	s.typeCommits[msgType] = commit
 	s.typeCommitsMutex.Unlock()
 	return commit, nil
+}
+
+func buildDeps() []*debug.Module {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return nil
+	}
+	return info.Deps
 }
 
 type cacheKey struct {
@@ -301,28 +309,21 @@ func newUnaryBearerTokenInterceptor(token string) connect.Interceptor {
 	})
 }
 
-// resolveCommit resolves a short commit ID extracted from a module pseudo-version to the full BSR
-// commit ID, using [modulev1connect.CommitServiceClient.ListCommits] with an ID query. Results are
-// cached by module path; concurrent calls for the same module path are deduplicated. Errors are
-// intentionally not cached: a transient BSR failure will block the produce call, but the next call
-// will retry rather than serving a stale error.
-func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCommit string) (string, error) {
+// resolveCommit resolves dep's short commit to the full BSR commit ID via ListCommits.
+// Errors are not cached so a transient BSR failure can be retried by the next call.
+func (s *Serde) resolveCommit(ctx context.Context, dep genSDKDep) (string, error) {
 	s.resolvedCommitsMutex.RLock()
-	commit, ok := s.resolvedCommits[depPath]
+	commit, ok := s.resolvedCommits[dep.moduleFullName]
 	s.resolvedCommitsMutex.RUnlock()
 	if ok {
 		return commit, nil
 	}
-	result, err, _ := s.commitSFGroup.Do(depPath, func() (any, error) {
+	result, err, _ := s.commitSFGroup.Do(dep.moduleFullName, func() (any, error) {
 		s.resolvedCommitsMutex.RLock()
-		commit, ok := s.resolvedCommits[depPath]
+		commit, ok := s.resolvedCommits[dep.moduleFullName]
 		s.resolvedCommitsMutex.RUnlock()
 		if ok {
 			return commit, nil
-		}
-		owner, module, ok := parseGenSDKModulePath(depPath)
-		if !ok {
-			return "", fmt.Errorf("could not parse BSR module path from %q", depPath)
 		}
 		response, err := retry.DoValue(
 			ctx,
@@ -334,12 +335,12 @@ func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCom
 			),
 			func(ctx context.Context) (*modulev1.ListCommitsResponse, error) {
 				response, err := s.commitClient.ListCommits(ctx, &modulev1.ListCommitsRequest{
-					IdQuery: shortCommit,
+					IdQuery: dep.shortCommit,
 					ResourceRef: &modulev1.ResourceRef{
 						Value: &modulev1.ResourceRef_Name_{
 							Name: &modulev1.ResourceRef_Name{
-								Owner:  owner,
-								Module: module,
+								Owner:  dep.owner,
+								Module: dep.module,
 							},
 						},
 					},
@@ -356,19 +357,19 @@ func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCom
 			},
 		)
 		if err != nil {
-			return "", fmt.Errorf("listing commits for %s/%s with id query %q: %w", owner, module, shortCommit, err)
+			return "", fmt.Errorf("listing commits for %s with id query %q: %w", dep.moduleFullName, dep.shortCommit, err)
 		}
 		commits := response.GetCommits()
 		var fullCommit string
 		switch len(commits) {
 		case 0:
-			return "", fmt.Errorf("no commits found for %s/%s with id query %q", owner, module, shortCommit)
+			return "", fmt.Errorf("no commits found for %s with id query %q", dep.moduleFullName, dep.shortCommit)
 		case 1:
 			fullCommit = commits[0].GetId()
 		default:
-			ts, ok := parsePseudoVersionTimestamp(depVersion)
+			ts, ok := parsePseudoVersionTimestamp(dep.version)
 			if !ok {
-				return "", fmt.Errorf("could not parse timestamp from pseudo-version %q", depVersion)
+				return "", fmt.Errorf("could not parse timestamp from pseudo-version %q", dep.version)
 			}
 			for _, commit := range commits {
 				if commit.GetCreateTime().AsTime().Equal(ts) {
@@ -377,11 +378,11 @@ func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCom
 				}
 			}
 			if fullCommit == "" {
-				return "", fmt.Errorf("no commit found for %s/%s with id query %q matching timestamp from %q", owner, module, shortCommit, depVersion)
+				return "", fmt.Errorf("no commit found for %s with id query %q matching timestamp from %q", dep.moduleFullName, dep.shortCommit, dep.version)
 			}
 		}
 		s.resolvedCommitsMutex.Lock()
-		s.resolvedCommits[depPath] = fullCommit
+		s.resolvedCommits[dep.moduleFullName] = fullCommit
 		s.resolvedCommitsMutex.Unlock()
 		return fullCommit, nil
 	})
@@ -392,28 +393,70 @@ func (s *Serde) resolveCommit(ctx context.Context, depPath, depVersion, shortCom
 	return fullCommit, nil
 }
 
-// findDepForPkgPath finds the module dependency with the longest path prefix matching pkgPath.
-// Separated from [GenSDKCommitFromMessage] for testability.
-func findDepForPkgPath(pkgPath string, deps []*debug.Module) *debug.Module {
-	var bestDep *debug.Module
-	for _, dep := range deps {
-		if strings.HasPrefix(pkgPath, dep.Path) {
-			if bestDep == nil || len(dep.Path) > len(bestDep.Path) {
-				bestDep = dep
-			}
-		}
-	}
-	return bestDep
+// genSDKDep is a BSR-generated Go SDK module dependency with fields pre-extracted at construction
+// so the hot path does no parsing.
+type genSDKDep struct {
+	pkgPathPrefix  string
+	version        string
+	moduleFullName string
+	owner          string
+	module         string
+	shortCommit    string
 }
 
-// parseGenSDKModulePath parses the owner and module name from a BSR-generated Go SDK module path.
-// The path format is: {host}/gen/go/{owner}/{module}/{sdk-type}/{language}.
-func parseGenSDKModulePath(modulePath string) (owner, module string, ok bool) {
+func collectGenSDKDeps(modules []*debug.Module) []genSDKDep {
+	deps := make([]genSDKDep, 0, len(modules))
+	for _, module := range modules {
+		registry, owner, name, ok := parseGenSDKModulePath(module.Path)
+		if !ok {
+			continue
+		}
+		shortCommit := extractCommitFromPseudoVersion(module.Version)
+		if shortCommit == "" {
+			continue
+		}
+		deps = append(deps, genSDKDep{
+			pkgPathPrefix:  module.Path,
+			version:        module.Version,
+			moduleFullName: registry + "/" + owner + "/" + name,
+			owner:          owner,
+			module:         name,
+			shortCommit:    shortCommit,
+		})
+	}
+	return deps
+}
+
+// findGenSDKDep returns the dep whose pkgPathPrefix is the longest prefix of pkgPath.
+func findGenSDKDep(pkgPath string, deps []genSDKDep) (genSDKDep, bool) {
+	var (
+		best  genSDKDep
+		found bool
+	)
+	for _, dep := range deps {
+		if pkgPath == dep.pkgPathPrefix {
+			return dep, true
+		}
+		if !strings.HasPrefix(pkgPath, dep.pkgPathPrefix+"/") {
+			continue
+		}
+		if !found || len(dep.pkgPathPrefix) > len(best.pkgPathPrefix) {
+			best = dep
+			found = true
+		}
+	}
+	return best, found
+}
+
+// parseGenSDKModulePath parses the registry, owner, and module name from a BSR-generated
+// Go SDK module path. The path format is:
+// {registry}/gen/go/{owner}/{module}/{plugin-owner}/{plugin-name}.
+func parseGenSDKModulePath(modulePath string) (registry, owner, module string, ok bool) {
 	parts := strings.SplitN(modulePath, "/", 7)
 	if len(parts) < 5 || parts[1] != "gen" || parts[2] != "go" {
-		return "", "", false
+		return "", "", "", false
 	}
-	return parts[3], parts[4], true
+	return parts[0], parts[3], parts[4], true
 }
 
 // parsePseudoVersionTimestamp parses the timestamp from a Go module pseudo-version.

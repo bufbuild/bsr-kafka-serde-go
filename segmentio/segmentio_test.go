@@ -24,7 +24,7 @@ import (
 	"github.com/bufbuild/bsr-kafka-serde-go/internal/serdetest"
 	"github.com/bufbuild/bsr-kafka-serde-go/segmentio"
 	"github.com/google/go-cmp/cmp"
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/testing/protocmp"

@@ -23,7 +23,7 @@ import (
 
 	serde "github.com/bufbuild/bsr-kafka-serde-go"
 	internalserde "github.com/bufbuild/bsr-kafka-serde-go/internal/serde"
-	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -34,7 +34,8 @@ type Serde interface {
 	// It always sets the [serde.BufRegistryValueSchemaMessage] header from the message descriptor.
 	// If src is from a BSR-generated SDK module, it also resolves the full commit ID via the BSR
 	// API and sets the [serde.BufRegistryValueSchemaCommit] header. A failed BSR lookup returns
-	// an error; use [serde.WithoutCommitResolution] to opt out of commit resolution entirely.
+	// an error; use [serde.WithCommitResolver] to supply commit IDs from another source, or
+	// [serde.WithoutCommitResolution] to skip the header entirely.
 	Serialize(ctx context.Context, src proto.Message) (kafka.Message, error)
 	// Deserialize deserializes the given message into a [proto.Message], based on the
 	// "buf.registry.value.schema.commit" and "buf.registry.value.schema.message"

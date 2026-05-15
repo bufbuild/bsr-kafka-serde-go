@@ -71,6 +71,9 @@ linters:
           - forbidigo
         path: segmentio/example/main.go
         text: fmt.Printf
+      - linters:
+          - goconst
+        path: _test\.go$
 
 formatters:
   enable:
