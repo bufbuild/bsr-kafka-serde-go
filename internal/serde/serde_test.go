@@ -135,6 +135,20 @@ func TestFindGenSDKDep(t *testing.T) {
 		_, ok := findGenSDKDep(pkgPath, nil)
 		assert.False(t, ok)
 	})
+	t.Run("exact match returns dep", func(t *testing.T) {
+		t.Parallel()
+		dep, ok := findGenSDKDep(registryDep.pkgPathPrefix, deps)
+		require.True(t, ok)
+		assert.Equal(t, registryDep, dep)
+	})
+	t.Run("string prefix without path boundary does not match", func(t *testing.T) {
+		t.Parallel()
+		// Sibling plugin path shares a string prefix with the registryDep dep (".../protocolbuffers/go"
+		// vs ".../protocolbuffers/google") but is not actually under that module.
+		pkgPath := "buf.build/gen/go/bufbuild/registry/protocolbuffers/google/foo"
+		_, ok := findGenSDKDep(pkgPath, deps)
+		assert.False(t, ok)
+	})
 }
 
 func TestParseGenSDKModulePath(t *testing.T) {

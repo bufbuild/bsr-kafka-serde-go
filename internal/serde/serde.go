@@ -434,11 +434,15 @@ func findGenSDKDep(pkgPath string, deps []genSDKDep) (genSDKDep, bool) {
 		found bool
 	)
 	for _, dep := range deps {
-		if strings.HasPrefix(pkgPath, dep.pkgPathPrefix) {
-			if !found || len(dep.pkgPathPrefix) > len(best.pkgPathPrefix) {
-				best = dep
-				found = true
-			}
+		if pkgPath == dep.pkgPathPrefix {
+			return dep, true
+		}
+		if !strings.HasPrefix(pkgPath, dep.pkgPathPrefix+"/") {
+			continue
+		}
+		if !found || len(dep.pkgPathPrefix) > len(best.pkgPathPrefix) {
+			best = dep
+			found = true
 		}
 	}
 	return best, found
