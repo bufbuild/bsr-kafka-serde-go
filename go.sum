@@ -321,8 +321,8 @@ github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea h1:SXhTLE6pb6eld/
 github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea/go.mod h1:WPnis/6cRcDZSUvVmezrxJPkiO87ThFYsoUiMwWNDJk=
 github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab h1:H6aJ0yKQ0gF49Qb2z5hI1UHxSQt4JMyxebFR15KnApw=
 github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab/go.mod h1:ulncasL3N9uLrVann0m+CDlJKWsIAP34MPcOJF6VRvc=
-github.com/twmb/franz-go v1.21.0 h1:J3uB/poWgHD6VIilER2uCPFAZHDRXVFT+11pBgRKod4=
-github.com/twmb/franz-go v1.21.0/go.mod h1:1o+jj5oRbItsIMoE+DGpfJIcPcPtDdtkcNFPj4bWNwU=
+github.com/twmb/franz-go v1.21.1 h1:sp17bMRLz6OB/w+7vHtBadHGIQVymzQHwvRbEKe5c4I=
+github.com/twmb/franz-go v1.21.1/go.mod h1:1o+jj5oRbItsIMoE+DGpfJIcPcPtDdtkcNFPj4bWNwU=
 github.com/twmb/franz-go/pkg/kadm v1.18.0 h1:WRf/LZmDdcDXwX7WMbtDU++v+b3NzYh2bCGoPMmzirw=
 github.com/twmb/franz-go/pkg/kadm v1.18.0/go.mod h1:XeLhGoLXLFzK8/ryv5FfpxPxGwj4oFEGpPJMB/x6KDE=
 github.com/twmb/franz-go/pkg/kmsg v1.13.1 h1:fG5kItwysTk5UXqVwb64EpQEy3TydF3vYYK21nUQ+bI=
