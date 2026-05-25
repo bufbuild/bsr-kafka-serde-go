@@ -1,13 +1,13 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1 h1:s6hzCXtND/ICdGPTMGk7C+/BFlr2Jg5GyH0NKf4XGXg=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1/go.mod h1:tvtbpgaVXZX4g6Pn+AnzFycuRK3MOz5HJfEGeEllXYM=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.2-20260507063250-43b0c5a6cd08.1 h1:V8I0PAoCd7anmh2T5kDNbNCYgvoshSDXRL1xq2QaLcU=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.19.2-20260507063250-43b0c5a6cd08.1/go.mod h1:mnv10iR74E8THxFdc9zEkXtgqWZBWsRIzZd+iaOtq5Y=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260507063250-43b0c5a6cd08.1 h1:K20TZy0m61o1IAbYycHw+uyJ8JLH93YFB8DBzH4czp0=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260507063250-43b0c5a6cd08.1/go.mod h1:zR8q0HsvVIwOAvKxmAMtUnOFzUQFSxVVJU5NkyxXMFs=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260507063250-43b0c5a6cd08.1 h1:QK2GkcPxqh2oG5mTMAHejculun8nxto+p7mlgh8fPTM=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260507063250-43b0c5a6cd08.1/go.mod h1:1JJi9jvOqRxSMa+JxiZSm57doB+db/1WYCIa2lHfc40=
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1 h1:xudf0Mfz1EIOXfkCRQX4RHfSgwMO4pY3LI/3WoIYUJU=
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1/go.mod h1:+67TRoLH3kBQ2qE0PGSvxpPnRWD7RScwWPVnC25qrMM=
-connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
-connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
+connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
