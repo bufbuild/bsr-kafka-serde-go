@@ -13,7 +13,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/stretchr/testify v1.11.1
-	github.com/twmb/franz-go v1.21.2
+	github.com/twmb/franz-go v1.21.3
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	golang.org/x/sync v0.21.0
 	google.golang.org/protobuf v1.36.11
