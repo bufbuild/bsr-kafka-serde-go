@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
-	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260610134905-7e419c5bd258.1
+	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260623180312-64dc593d6fa5.1
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260623180312-64dc593d6fa5.1
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1
 	connectrpc.com/connect v1.20.0
