@@ -11,7 +11,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.15.0
 	github.com/google/go-cmp v0.7.0
 	github.com/segmentio/kafka-go v0.4.51
-	github.com/sethvargo/go-retry v0.3.0
+	github.com/sethvargo/go-retry v0.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/twmb/franz-go v1.21.5
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
