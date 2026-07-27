@@ -4,8 +4,8 @@ buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260713175918-10
 buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260713175918-10d915f5b43b.1/go.mod h1:oTxnYOJJzlnTMZUykPI2maydd4wIFVi9lUsZ7RVNZDM=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260713175918-10d915f5b43b.1 h1:qJUlFKLFdb3OFCpmA+r5AQbysgBD7WLRapE9lOs08r8=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260713175918-10d915f5b43b.1/go.mod h1:1JJi9jvOqRxSMa+JxiZSm57doB+db/1WYCIa2lHfc40=
-buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1 h1:xudf0Mfz1EIOXfkCRQX4RHfSgwMO4pY3LI/3WoIYUJU=
-buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260310202139-5f2c7d4f7405.1/go.mod h1:+67TRoLH3kBQ2qE0PGSvxpPnRWD7RScwWPVnC25qrMM=
+buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260722205108-41ecbd638b41.1 h1:+30sF5/Oq7WOGGFLMewIWEM7pIA5fVCs/ReLmkBYbz0=
+buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260722205108-41ecbd638b41.1/go.mod h1:+67TRoLH3kBQ2qE0PGSvxpPnRWD7RScwWPVnC25qrMM=
 connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
 connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 github.com/confluentinc/confluent-kafka-go/v2 v2.15.0 h1:Nfz04XU4qtT4/OU3zibwJVjUYs5SG35d2SwBIQ+L2FY=
