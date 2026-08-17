@@ -6,7 +6,7 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260713175918-10d915f5b43b.1
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260713175918-10d915f5b43b.1
-	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.11-20260722205108-41ecbd638b41.1
+	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.1
 	connectrpc.com/connect v1.20.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.15.0
 	github.com/google/go-cmp v0.7.0
@@ -16,7 +16,7 @@ require (
 	github.com/twmb/franz-go v1.21.5
 	github.com/twmb/franz-go/pkg/kadm v1.18.0
 	golang.org/x/sync v0.22.0
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
