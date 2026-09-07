@@ -1,7 +1,7 @@
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 h1:NbnlmV26O7oZ1iM5tsCI+GEx+3ZSdrhvnKQ/eWSrLiY=
 buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2/go.mod h1:TCt1lluMFnctISJXvkIQ4x3ABrPuUKCWKyjKdkJNBpw=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260713175918-10d915f5b43b.1 h1:Zw9j2Z9DnlOeWeo8lHKKg+dqishVqW29zB9+8tUVSxc=
-buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260713175918-10d915f5b43b.1/go.mod h1:oTxnYOJJzlnTMZUykPI2maydd4wIFVi9lUsZ7RVNZDM=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260831211851-b4432e12a6e7.1 h1:6HWkBOBQ8W2ScpqRxFblurEZ9jW5CbXDcKhMCngiirc=
+buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260831211851-b4432e12a6e7.1/go.mod h1:j2mjrh2AwxloTDIxFyAttUTf6FBmbxThnp9W7olq5OA=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260831211851-b4432e12a6e7.2 h1:cik2XvKM1UV8HgLWD2vnBvV4GgT5NfpLJBb9UgLKzzg=
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260831211851-b4432e12a6e7.2/go.mod h1:91H8i3iR9GoomNkM9X13RTFL8cVNAHnS44BdgAnbqz4=
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.2 h1:v5smGucY1Rtquzajt0EfSMbS9HGg28INTiTXE7U7KQo=
