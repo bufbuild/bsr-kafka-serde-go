@@ -7,7 +7,7 @@ require (
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.20.0-20260831211851-b4432e12a6e7.1
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260831211851-b4432e12a6e7.2
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.2
-	connectrpc.com/connect v1.20.0
+	connectrpc.com/connect v1.21.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.15.1
 	github.com/google/go-cmp v0.7.0
 	github.com/segmentio/kafka-go v0.4.51

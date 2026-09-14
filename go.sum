@@ -6,8 +6,8 @@ buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260831211851-b4
 buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260831211851-b4432e12a6e7.2/go.mod h1:91H8i3iR9GoomNkM9X13RTFL8cVNAHnS44BdgAnbqz4=
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.2 h1:v5smGucY1Rtquzajt0EfSMbS9HGg28INTiTXE7U7KQo=
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.2/go.mod h1:T1jbBCgJOoa9RzEPby8PwvFnrdhQ240Jz2eX4tifQUQ=
-connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
-connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
+connectrpc.com/connect v1.21.0 h1:LhqSJt7jHf5NJBo9Jq/t/9FjcYAideif0mg+qe2jCUs=
+connectrpc.com/connect v1.21.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 github.com/confluentinc/confluent-kafka-go/v2 v2.15.1 h1:zqKvZk3Ay68ya4hnImXecb55T579qI1x7ozaHcCL+AY=
 github.com/confluentinc/confluent-kafka-go/v2 v2.15.1/go.mod h1:Jb4/23G4BMIa8vrwtoKx5bdk2h0eUYHbXC45m1FuOXI=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
