@@ -7,7 +7,7 @@ require (
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260930211409-f406cd0c7485.2
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20260722205108-41ecbd638b41.2
 	connectrpc.com/connect v1.21.0
-	github.com/confluentinc/confluent-kafka-go/v2 v2.15.1
+	github.com/confluentinc/confluent-kafka-go/v2 v2.16.0
 	github.com/google/go-cmp v0.7.0
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/sethvargo/go-retry v0.4.0
