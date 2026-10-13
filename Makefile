@@ -12,7 +12,7 @@ export GOBIN := $(abspath $(BIN))
 COPYRIGHT_YEARS := 2025
 LICENSE_IGNORE := --ignore testdata/
 BUF_VERSION := 1.73.0
-GOLANGCI_VERSION := 2.13.2
+GOLANGCI_VERSION := 2.14.0
 
 .PHONY: help
 help: ## Describe useful make targets
