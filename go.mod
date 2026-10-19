@@ -3,10 +3,10 @@ module github.com/bufbuild/bsr-kafka-serde-go
 go 1.26.0
 
 require (
-	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.21.0-20261012202254-0d982fa084c7.1
-	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261012202254-0d982fa084c7.2
+	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.21.1-20261015154428-c661e2f1fba9.1
+	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261015154428-c661e2f1fba9.2
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20261002203906-f3a7b1f1162b.2
-	connectrpc.com/connect v1.21.0
+	connectrpc.com/connect v1.21.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.16.0
 	github.com/google/go-cmp v0.7.0
 	github.com/segmentio/kafka-go v0.4.51
