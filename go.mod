@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.21.1-20261015154428-c661e2f1fba9.1
-	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261015154428-c661e2f1fba9.2
+	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261021182822-0b1ad74125ef.2
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20261002203906-f3a7b1f1162b.2
 	connectrpc.com/connect v1.21.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.16.0
