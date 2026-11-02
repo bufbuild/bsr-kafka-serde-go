@@ -8,8 +8,8 @@ buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-2026100
 buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20261002203906-f3a7b1f1162b.2/go.mod h1:T1jbBCgJOoa9RzEPby8PwvFnrdhQ240Jz2eX4tifQUQ=
 connectrpc.com/connect v1.21.1 h1:h2kacdlzXpZU2OQFSv98xkjYXNUSr/ptxmGVbS/+CRM=
 connectrpc.com/connect v1.21.1/go.mod h1:fhMcVJ5w6r/yTYhnkEbW6+sIF7OZ5Ay7KYgmfebh2ek=
-github.com/confluentinc/confluent-kafka-go/v2 v2.16.0 h1:kf268ezKIaGmJHfrRQqrIzB7h0PuGl1h/Rsd7rsYcGg=
-github.com/confluentinc/confluent-kafka-go/v2 v2.16.0/go.mod h1:3uFmX9Hrc+Ie1cBHo/dPXEY0U1GQG1oz651fhM9pLS0=
+github.com/confluentinc/confluent-kafka-go/v2 v2.16.1 h1:/ijZ+cEblgBZFkqNbcZL28MPb7QftY/c6EpRjda9vOQ=
+github.com/confluentinc/confluent-kafka-go/v2 v2.16.1/go.mod h1:+UyluWSsEYBJE8L5ocILZIxL5sd6h+4DdEvi1qkFYO4=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/klauspost/compress v1.20.3 h1:zWNoFqq/lSuYQRim3dUXlXeA0IqwuZGicdG5ZTfY5j4=
