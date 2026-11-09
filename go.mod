@@ -3,7 +3,7 @@ module github.com/bufbuild/bsr-kafka-serde-go
 go 1.26.10
 
 require (
-	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.21.1-20261029170924-54cd3c2f6265.1
+	buf.build/gen/go/bufbuild/registry/connectrpc/gosimple v1.21.1-20261105203900-12e7031be281.1
 	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261105203900-12e7031be281.2
 	buf.build/gen/go/opentelemetry/opentelemetry/protocolbuffers/go v1.36.12-20261002203906-f3a7b1f1162b.2
 	connectrpc.com/connect v1.21.1
