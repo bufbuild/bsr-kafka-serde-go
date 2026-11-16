@@ -12,8 +12,8 @@ require (
 	github.com/segmentio/kafka-go v0.4.51
 	github.com/sethvargo/go-retry v0.5.0
 	github.com/stretchr/testify v1.12.1
-	github.com/twmb/franz-go v1.22.2
-	github.com/twmb/franz-go/pkg/kadm v1.19.0
+	github.com/twmb/franz-go v1.22.3
+	github.com/twmb/franz-go/pkg/kadm v1.20.0
 	golang.org/x/sync v0.25.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -22,6 +22,6 @@ require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
-	github.com/twmb/franz-go/pkg/kmsg v1.15.0 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.15.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
